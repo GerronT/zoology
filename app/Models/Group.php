@@ -21,5 +21,17 @@ class Group extends Model
     ];
 
     protected $hidden = ['deleted_at'];
+
+    // Define the inverse of the relationship: the parent group
+    public function parent()
+    {
+        return $this->belongsTo(Group::class, 'parent_group_id');
+    }
+
+    // Define the one-to-many relationship: the child groups
+    public function children()
+    {
+        return $this->hasMany(Group::class, 'parent_group_id');
+    }
     
 }

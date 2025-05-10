@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Group;
 use App\Http\Requests\StoreGroupRequest;
 use App\Http\Requests\UpdateGroupRequest;
+use Illuminate\Http\Request;
 
 class GroupController extends Controller
 {
@@ -62,5 +63,25 @@ class GroupController extends Controller
     public function destroy(Group $group)
     {
         //
+    }
+
+    public function search(Request $request)
+    {
+        $query = $request->input('query');
+
+        if (!$query || strlen($query) < 2) {
+            return response()->json([]);
+        }
+
+        $groups = Group::where('name', 'like', '%' . $query . '%')
+            ->limit(10) // optional: limit results
+            ->get();
+
+        return response()->json($groups);
+    }
+
+    public function childgroups(Group $group)
+    {
+        return response()->json($group->children);
     }
 }

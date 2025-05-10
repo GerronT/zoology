@@ -22,6 +22,7 @@
     },
     "dependencies": {
         "@vueform/multiselect": "^2.6.11",
+        "lodash.debounce": "^4.0.8",
         "vue3-blocks-tree": "^0.6.2",
         "vue3-select": "^0.1.2"
     }

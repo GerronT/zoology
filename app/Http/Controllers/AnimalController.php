@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Animal;
+use App\Models\Classification;
 use App\Models\Group;
 use App\Http\Requests\StoreAnimalRequest;
 use App\Http\Requests\UpdateAnimalRequest;
@@ -24,13 +25,26 @@ class AnimalController extends Controller
      */
     public function create()
     {
+        // Fetch the "Kingdom" classification
+        $kingdom = Classification::where('name', 'Kingdom')->first();
+
+        if ($kingdom) {
+            $classifications = [];
+            $current = $kingdom;
+            while ($current) {
+                $classifications[] = $current; // Add the current item to the result
+                $current = Classification::find($current->succeeded_by_id);
+            }
+        } else {
+            $classifications = Classification::all();
+        }
+
         return Inertia::render('Animals/index', [
-            'classifications' => \App\Models\Classification::all(),
+            'classifications' => $classifications,
             'levels' => \App\Models\Level::all(),
-            'groups' => \App\Models\Group::all(),
-            'animals' => \App\Models\Animal::all()
         ]);
     }
+
 
     /**
      * Store a newly created resource in storage.
@@ -69,12 +83,20 @@ class AnimalController extends Controller
             $group_parent_id = $insertedOrFetchedGroup->id;
         }
 
-        return Animal::create([
+        $existingAnimal = Animal::where('group_id', $group_parent_id)->first();
+
+        if (!$existingAnimal) {
+            // No record with this field value exists, so create the new record
+            return Animal::create([
             'name' => $request->name,
             'alt_name' => $request->alt_name,
             'description' => $request->description,
             'group_id' => $group_parent_id
         ]);
+        } else {
+            throw new \Exception("Animal already assigned to the selected species.");
+        }
+        
     }
 
     /**

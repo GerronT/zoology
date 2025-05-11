@@ -39,7 +39,7 @@ class AnimalController extends Controller
             $classifications = Classification::all();
         }
 
-        return Inertia::render('Animals/index', [
+        return Inertia::render('Animals/create', [
             'classifications' => $classifications,
             'levels' => \App\Models\Level::all(),
         ]);
@@ -59,23 +59,25 @@ class AnimalController extends Controller
             'groupings.*' => ['array']
         ]);
 
+        // check last group is a species
+        // check last group not attached to animal
+        // validate group fields data (id or data (clade, then level and class can be null))
+
         $group_parent_id = null;
 
         foreach ($request->groupings as $group) {
             $insertedOrFetchedGroup = null;
 
-            if (isset($group['id']) && $group['id']) {
+            if (!$group['useNewGroup'] && $group['id']) {
                 $insertedOrFetchedGroup = Group::find($group['id']);
-            }
-
-            if (!$insertedOrFetchedGroup) {
+            } else {
                 $insertedOrFetchedGroup = Group::firstOrCreate(
                     ['name' => $group['name'], 'classification_id' => $group['classification_id'], 'level_id' => $group['level_id']],
                     ['description' => $group['description']
                 ]);
             }
 
-            if ($group_parent_id && $insertedOrFetchedGroup->wasRecentlyCreated) {
+            if ($group_parent_id /*&& $insertedOrFetchedGroup->wasRecentlyCreated*/) {
                 $insertedOrFetchedGroup->parent_group_id = $group_parent_id;
                 $insertedOrFetchedGroup->save();
             }
@@ -88,15 +90,14 @@ class AnimalController extends Controller
         if (!$existingAnimal) {
             // No record with this field value exists, so create the new record
             return Animal::create([
-            'name' => $request->name,
-            'alt_name' => $request->alt_name,
-            'description' => $request->description,
-            'group_id' => $group_parent_id
-        ]);
+                'name' => $request->name,
+                'alt_name' => $request->alt_name,
+                'description' => $request->description,
+                'group_id' => $group_parent_id
+            ]);
         } else {
             throw new \Exception("Animal already assigned to the selected species.");
         }
-        
     }
 
     /**

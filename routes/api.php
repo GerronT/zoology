@@ -10,3 +10,5 @@ Route::get('/user', function (Request $request) {
 
 Route::get('/groups/search', [GroupController::class, 'search']);
 Route::get('/groups/{group}/children', [GroupController::class, 'childgroups']);
+Route::get('/groups/{group}/youngest-ranked-ancestor', [GroupController::class, 'youngestRankedAncestor']);
+Route::get('/group-tree', [GroupController::class, 'tree']);

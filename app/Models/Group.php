@@ -22,16 +22,41 @@ class Group extends Model
 
     protected $hidden = ['deleted_at'];
 
-    // Define the inverse of the relationship: the parent group
+    // // Define the inverse of the relationship: the parent group
+    // public function parent()
+    // {
+    //     return $this->belongsTo(Group::class, 'parent_group_id');
+    // }
+
+    // Define the one-to-many relationship: the child groups
+    public function childrenOnly()
+    {
+        return $this->hasMany(Group::class, 'parent_group_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(Group::class, 'parent_group_id')->with('children', 'classification', 'level');
+    }
+
     public function parent()
     {
         return $this->belongsTo(Group::class, 'parent_group_id');
     }
 
-    // Define the one-to-many relationship: the child groups
-    public function children()
+    public function classification()
     {
-        return $this->hasMany(Group::class, 'parent_group_id');
+        return $this->belongsTo(Classification::class);
+    }
+
+    public function level()
+    {
+        return $this->belongsTo(Level::class);
+    }
+
+    public function animals()
+    {
+        return $this->hasMany(Animal::class);
     }
     
 }

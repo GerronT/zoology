@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Group;
+use App\Http\Resources\GroupTreeResource;
 use App\Http\Requests\StoreGroupRequest;
 use App\Http\Requests\UpdateGroupRequest;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class GroupController extends Controller
 {
@@ -22,7 +24,10 @@ class GroupController extends Controller
      */
     public function create()
     {
-        //
+        return Inertia::render('Groups/create', [
+            'classifications' => \App\Models\Classification::all(),
+            'levels' => \App\Models\Level::all(),
+        ]);
     }
 
     /**
@@ -30,7 +35,35 @@ class GroupController extends Controller
      */
     public function store(StoreGroupRequest $request)
     {
-        //
+        $request->validate([
+            'groupings' => ['array', 'min:1'],
+            'groupings.*' => ['array']
+        ]);
+
+        // validate group fields data (id or data (clade, then level and class can be null))
+        // check that first ite
+
+        $group_parent_id = null;
+
+        foreach ($request->groupings as $group) {
+            $insertedOrFetchedGroup = null;
+
+            if (!$group['useNewGroup'] && $group['id']) {
+                $insertedOrFetchedGroup = Group::find($group['id']);
+            } else {
+                $insertedOrFetchedGroup = Group::firstOrCreate(
+                    ['name' => $group['name'], 'classification_id' => $group['classification_id'], 'level_id' => $group['level_id']],
+                    ['description' => $group['description']
+                ]);
+            }
+
+            if ($group_parent_id /*&& $insertedOrFetchedGroup->wasRecentlyCreated*/) {
+                $insertedOrFetchedGroup->parent_group_id = $group_parent_id;
+                $insertedOrFetchedGroup->save();
+            }
+
+            $group_parent_id = $insertedOrFetchedGroup->id;
+        }
     }
 
     /**
@@ -82,6 +115,35 @@ class GroupController extends Controller
 
     public function childgroups(Group $group)
     {
-        return response()->json($group->children);
+        return response()->json($group->childrenOnly);
+    }
+
+     public function indexTree()
+     {
+        return Inertia::render('Groups/tree');
+     }
+
+    public function tree()
+    {
+        $rootGroups = Group::whereNull('parent_group_id')
+            ->with(['children', 'classification', 'level', 'animals'])
+            ->get();
+
+        return GroupTreeResource::collection($rootGroups);
+    }
+
+    public function youngestRankedAncestor(Group $group)
+    {
+        $ancestor = $group->parent;
+
+        while ($ancestor) {
+            if ($ancestor->classification_id && $ancestor->level_id) {
+                return $ancestor;
+            }
+
+            $ancestor = $ancestor->parent;
+        }
+
+        return null;
     }
 }

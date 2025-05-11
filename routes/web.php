@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AnimalController;
+use App\Http\Controllers\GroupController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -14,8 +15,14 @@ Route::get('/home', function () {
     ]);
 });
 
-Route::post('/animals', [AnimalController::class, 'store']);
 Route::get('/animals/create', [AnimalController::class, 'create']);
+Route::post('/animals', [AnimalController::class, 'store']);
+
+
+
+Route::get('/groups/create', [GroupController::class, 'create']);
+Route::post('/groups', [GroupController::class, 'store']);
+Route::get('/groups/tree', [GroupController::class, 'indexTree']);
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [

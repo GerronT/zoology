@@ -3,10 +3,10 @@
     <h2 class="text-center text-xl font-bold mb-6">Add Animal</h2>
     <form @submit.prevent="submitAnimal" class="animal-form">
       <!-- Animal Name and Alternate Name -->
-      <animal-form v-model="form"/>
+      <animal-form v-model="animalForm" @update:modelValue="updateAnimalForm"/>
 
       <!-- Groupings section -->
-      <group-form :classifications="classifications" :levels="levels" :groupings="form.groupings" @addGroup="addGroup" @removeGroup="removeGroup">
+      <group-form :classifications="classifications" :levels="levels" :groupings="groupForm.groupings" @addGroup="addGroup" @removeGroup="removeGroup">
         <template #cta>
           <button type="submit" class="px-4 py-2 bg-gray-800 text-white rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed" :disabled="!isSaveAnimalEnabled">
             💾 Save Animal
@@ -34,23 +34,27 @@ export default {
     GroupForm
   },
   setup(props) {
-    const form = reactive({
+    const animalForm = reactive({
       name: '',
       alt_name: '',
       description: '',
+    });
+
+    const groupForm = reactive({
       groupings: [{id: null, name: '', classification_id: null, level_id: 5, description: '', is_clade: false , useNewGroup: false}]
     });
 
-    const updateFormData = (newFormData) => {
-      form.value = { ...formData.value, ...newFormData };
+    const updateAnimalForm = (mutatedAnimalForm) => {
+      console.log(mutatedAnimalForm);
+      Object.assign(animalForm, { ...mutatedAnimalForm});
     };
 
     const addGroup = (useNewGroup) => {
-      form.groupings.push({id: null, name: '', classification_id: null, level_id: 5, description: '', is_clade: false, useNewGroup: useNewGroup ?? false});
+      groupForm.groupings.push({id: null, name: '', classification_id: null, level_id: 5, description: '', is_clade: false, useNewGroup: useNewGroup ?? false});
     }
 
     const removeGroup = (index) => {
-      form.groupings.splice(index, 1);
+      groupForm.groupings.splice(index, 1);
     };
 
     // Computed logic for enabling the 'Save Animal' button
@@ -75,11 +79,12 @@ export default {
       return true;
     });
 
-    // Submit the animal form
+    // Submit form
     const submitAnimal = async () => {
       try {
         await axios.post('/animals', {
-          ...form
+          ...animalForm,
+          ...groupForm
         });
         alert('Animal added!');
         location.reload();
@@ -89,9 +94,10 @@ export default {
     };
 
     return {
-      form,
-      updateFormData,
+      animalForm,
+      updateAnimalForm,
 
+      groupForm,
       addGroup,
       removeGroup,
 

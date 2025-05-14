@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Classification;
+use App\Models\Level;
 use App\Models\Group;
 use App\Http\Resources\GroupTreeResource;
 use App\Http\Requests\StoreGroupRequest;
 use App\Http\Requests\UpdateGroupRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Database\Eloquent\Collection;
 
 class GroupController extends Controller
 {
@@ -134,16 +137,65 @@ class GroupController extends Controller
 
     public function youngestRankedAncestor(Group $group)
     {
-        $ancestor = $group->parent;
+        return $group?->parent->getYoungestRankedAncestor();
+    }
 
-        while ($ancestor) {
-            if ($ancestor->classification_id && $ancestor->level_id) {
-                return $ancestor;
-            }
+    public function moveGroup(Request $request)
+    {
+        $validated = $request->validate([
+            'child_id' => 'required|integer|exists:groups,id',
+            'new_parent_id' => 'required|integer|exists:groups,id',
+        ]);
 
-            $ancestor = $ancestor->parent;
+        $child = Group::findOrFail($validated['child_id']);
+        $newParent = Group::findOrFail($validated['new_parent_id']);
+
+        // Prevent assigning to self
+        if ($child->id === $newParent->id) {
+            return response()->json(['message' => 'A group cannot be its own parent.'], 422);
         }
 
-        return null;
+        // Prevent assigning to current parent
+        if ($child->parent_group_id === $newParent->id) {
+            return response()->json(['message' => 'Group already assigned to that parent'], 422);
+        }
+
+        $childSelfOrBestRankedDescendant = $child->getBestRankedDescendant();
+        $newParentSelfOrYoungestRankedAncestor = $newParent->getYoungestRankedAncestor();
+
+        if ($childSelfOrBestRankedDescendant && $newParentSelfOrYoungestRankedAncestor) {
+            if (abs($childSelfOrBestRankedDescendant->getClassificationRank() - $newParentSelfOrYoungestRankedAncestor->getClassificationRank()) >= 2) {
+                return response()->json(['message' => 'A group (or its best ranked descendant if unranked) cannot skip a classification between itself and its to be assigned next ranked predecessor'], 422);
+            }
+
+            if ($childSelfOrBestRankedDescendant->getComboRank() <= $newParentSelfOrYoungestRankedAncestor->getComboRank()) {
+                return response()->json(['message' => 'A group (or its best ranked descendant if unranked) cannot be better ranked than its to be assigned next ranked predecessor'], 422);
+            }
+        }
+
+        // Prevent circular parenting (check if new parent is a descendant of the child)
+        if ($this->isDescendant($child->id, $newParent)) {
+            // Move all direct children of the child group to its previous parent
+            $child->children()->update(['parent_group_id' => $child->parent_group_id]);
+        }
+
+        $child->parent_group_id = $newParent->id;
+        $child->save();
+
+        return response()->json(['message' => 'Parent updated successfully.']);
+    }
+
+    // Helper method to detect circular parenting
+    private function isDescendant($childId, $potentialParent)
+    {
+        $parent = $potentialParent;
+        while ($parent) {
+            if ($parent->id == $childId) {
+                return true;
+            }
+            $parent = $parent->parent; // Assuming you have a relationship defined like: parent() { return $this->belongsTo(Group::class, 'parent_group_id'); }
+        }
+
+        return false;
     }
 }

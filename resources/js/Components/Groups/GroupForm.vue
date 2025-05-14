@@ -275,9 +275,8 @@ export default {
 
       if (yngRnkAncestor) {
         if (yngRnkAncestor.classification_id == classificationId) {
-            const nextLevelRankId = getNextRankedId(yngRnkAncestor.level_id, levelRanks.value);
             return props.levels.filter(l => {
-                return nextLevelRankId == l.id;
+                return levelRanks.value.get(l.id) > levelRanks.value.get(yngRnkAncestor.level_id);
             });
         }
       }

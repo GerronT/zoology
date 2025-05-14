@@ -1,6 +1,7 @@
 <template>
   <div
-    class="canvas-container relative w-full h-screen overflow-auto bg-gray-100"
+    id="mainCanvas"
+    class="canvas-container relative w-full h-screen overflow-auto bg-gray-600"
     @mousedown="startDragCanvas"
     @mousemove="dragCanvas"
     @mouseup="stopDragCanvas"
@@ -16,10 +17,11 @@
         :y1="0"
         :x2="x"
         :y2="canvasHeight"
-        stroke="lightGray"
+        stroke="#D1D5DB"
         stroke-width="1"
         stroke-linecap="round"
         stroke-linejoin="round"
+        stroke-opacity="0.4"
       />
       <!-- Horizontal gridlines -->
       <line
@@ -29,10 +31,11 @@
         :y1="y"
         :x2="canvasWidth"
         :y2="y"
-        stroke="lightGray"
+        stroke="#D1D5DB"
         stroke-width="1"
         stroke-linecap="round"
         stroke-linejoin="round"
+        stroke-opacity="0.4"
       />
     </svg>
 
@@ -41,7 +44,15 @@
       class="absolute flex flex-col gap-4"
       :style="{ left: `${canvasPosition.x}px`, top: `${canvasPosition.y}px` }"
     >
-      <GroupTree v-for="group in treeData" :key="group.id" :node="group" @add-line="addLine" />
+      <div class="mt-8 ml-8">
+        <GroupTree 
+          v-for="group in treeData"
+          :key="group.id"
+          :node="group"
+          @add-line="addLine"
+          @reassign-parent="handleReassignParent"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -115,7 +126,7 @@ const dragCanvas = (event) => {
 };
 
 // Stop dragging
-const stopDragCanvas = () => {
+const stopDragCanvas = (event) => {
   isDragging.value = false;
 };
 
@@ -123,6 +134,26 @@ const stopDragCanvas = () => {
 const addLine = (line) => {
   lines.value.push(line);
 };
+
+const handleReassignParent = async ({ childId, newParentId }) => {
+  try {
+    await axios.post('/api/move-group', {
+      child_id: childId,
+      new_parent_id: newParentId
+    });
+    const response = await axios.get('/api/group-tree');
+    treeData.value = response.data.data;
+  } catch (err) {
+    if (err.response && err.response.data) {
+      console.error('Backend error:', err.response.data);
+      alert(err.response.data.message || 'Failed to update parent group.');
+    } else {
+      console.error('Unknown error:', err);
+      alert('An unexpected error occurred.');
+    }
+  }
+};
+
 </script>
 
 <style scoped>

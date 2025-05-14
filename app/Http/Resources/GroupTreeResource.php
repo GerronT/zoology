@@ -11,6 +11,7 @@ class GroupTreeResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'is_root' => $this->parent_group_id == null,
             'name' => $this->name,
             'description' => $this->description,
             'classification' => $this->classification->name ?? null,

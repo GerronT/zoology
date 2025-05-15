@@ -121,16 +121,20 @@ class GroupController extends Controller
         return response()->json($group->childrenOnly);
     }
 
-     public function indexTree()
+     public function indexTree(Request $request, ?int $group_root_id = null)
      {
-        return Inertia::render('Groups/tree');
+        return Inertia::render('Groups/tree', ['group_root_id' => $group_root_id, 'open_nodes' => $request->has('openNodes')]);
      }
 
-    public function tree()
+    public function tree(Request $request)
     {
-        $rootGroups = Group::whereNull('parent_group_id')
-            ->with(['children', 'classification', 'level', 'animals'])
-            ->get();
+        $groupRootId = $request->query('group_root_id');
+        
+        $rootGroups = Group::where(function($q) use ($groupRootId) {
+            return $groupRootId ? $q->where('id', $groupRootId) : $q->whereNull('parent_group_id');
+        })
+        ->with(['children', 'classification', 'level', 'animals'])
+        ->get();
 
         return GroupTreeResource::collection($rootGroups);
     }

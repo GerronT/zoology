@@ -22,7 +22,7 @@ Route::post('/animals', [AnimalController::class, 'store']);
 
 Route::get('/groups/create', [GroupController::class, 'create']);
 Route::post('/groups', [GroupController::class, 'store']);
-Route::get('/groups/tree', [GroupController::class, 'indexTree']);
+Route::get('/groups/tree/{group_root_id?}', [GroupController::class, 'indexTree']);
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [

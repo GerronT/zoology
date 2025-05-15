@@ -24,7 +24,31 @@ class GroupTreeResource extends JsonResource
                     'description' => $animal->description,
                 ];
             }),
+            'primary_class' => $this->fetchPrimaryClass(),
+            'secondary_class' => $this->fetchSecondaryClass(),
             'children' => GroupTreeResource::collection($this->children),
         ];
+    }
+
+    private function fetchPrimaryClass() {
+        $group = $this->getYoungestRankedAncestor();
+
+        if ($group) {
+            $group->load('classification');
+            return strtolower($group->classification->name);
+        }
+
+        return 'none';
+    }
+
+    private function fetchSecondaryClass() {
+        $group = $this->getBestRankedDescendant();
+
+        if ($group) {
+            $group->load('classification');
+            return strtolower($group->classification->name);
+        }
+
+        return 'none';
     }
 }

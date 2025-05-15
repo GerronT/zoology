@@ -1,14 +1,14 @@
 <template>
   <ul class="relative inline-flex">
-    <span class="rounded-full" :class="node.is_root ? 'bg-red-700 w-5 h-5 mt-2' : 'w-3 h-3 bg-yellow-500 mt-3 -ml-[5px]'"></span>
-    <div class="border-t-2 border-orange-300 mt-4 w-8"></div>
+    <span class="rounded-full" :class="node.is_root ? 'bg-red-700 w-5 h-5 mt-4' : 'w-3 h-3 bg-yellow-500 mt-5 -ml-[5px]'"></span>
+    <div class="border-t-2 border-orange-300 mt-6 w-8 border-dashed"></div>
     <li
-      class="relative before:absolute before:top-0 before:left-6 before:h-full before:border-l-2 before:border-orange-300"
+      class="relative before:absolute before:left-6 before:border-l-2 before:border-orange-300 mt-2 before:top-0 before:h-full before:border-dotted"
       :id="`node-${node.id}`"
     >
       <div class="relative inline-flex items-center">
           <div
-            class="relative inline-flex items-center gap-1 border-l-2 border-t-2 border-b-2 rounded-tl rounded-bl px-2 py-1 cursor-pointer"
+            class="relative inline-flex items-center gap-1 border-2 rounded-md px-2 py-1 cursor-pointer hover:brightness-75"
             draggable="true"
             @dragstart="onDragStart"
             @dragover.prevent="handleDragOver"
@@ -17,7 +17,7 @@
             @click="toggle"
             @mouseup="(e) => mouseUpMainCanvas()"
             @mouseleave="(e) => mouseUpMainCanvas()"
-            :class="!draggedOver ? 'bg-orange-100 border-orange-300 hover:bg-orange-200' : 'bg-green-200 border-green-300 hover:bg-green-200'"
+            :class="`bg-gradient-to-r from-${node.primary_class} to-${node.secondary_class} border-orange-300` + (draggedOver ? ` brightness-200` : ``)"
           >
             <span v-if="hasChildren" class="w-4 text-xs text-orange-500">{{ isOpen ? '▼' : '▶' }}</span>
             <strong class="text-sm text-gray-800">{{ node.name }}</strong>
@@ -26,23 +26,25 @@
             <span v-if="!node.classification && !node.level" class="text-xs text-gray-400 italic">- (Unranked Clade)</span>
           </div>
 
-          <div class="flex items-center gap-2 px-2 bg-orange-200 border-orange-400 border-t-2 border-b-2 border-l-2" v-show="showMenu">
-            <button class="h-6 w-6 flex items-center justify-center px-2 py-1 text-xs font-medium text-green-800 bg-green-100 border-2 border-green-300 rounded hover:bg-green-200 transition" title="Add">
+          <div class="absolute right-0 mb-8 -mr-4">
+          <div class="flex items-center gap-1">
+            <button class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-green-800 bg-green-100 border-2 border-green-300 rounded hover:bg-green-200 transition" title="Add">
               ➕
             </button>
-            <button class="h-6 w-6 flex items-center justify-center px-2 py-1 text-xs font-medium text-blue-800 bg-blue-100 border-2 border-blue-300 rounded hover:bg-blue-200 transition" title="Edit">
+            <button class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-blue-800 bg-blue-100 border-2 border-blue-300 rounded hover:bg-blue-200 transition" title="Edit">
               ✏️
             </button>
-            <button class="h-6 w-6 flex items-center justify-center px-2 py-1 text-xs font-medium text-red-800 bg-red-100 border-2 border-red-300 rounded hover:bg-red-200 transition" title="Delete">
+            <button class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-red-800 bg-red-100 border-2 border-red-300 rounded hover:bg-red-200 transition" title="Delete">
               🗑️
             </button>
           </div>
-          <button @click.prevent="showMenu = !showMenu" title="Open Menu" class="bg-orange-200 hover:bg-orange-300 border-orange-400 text-orange-500 rounded-tr-md rounded-br-md border-b-2 border-t-2 border-r-2 border-l-2 px-1 font-bold">{{ showMenu ? '✖' : '☰' }}</button>
+          </div>
       </div>
 
       <!-- Animals list -->
       <ul v-show="node.animals?.length" class="ml-6 flex flex-row">
-        <div class="border-t-2 border-purple-300 mt-4 w-8"></div>
+        <span class="rounded-full w-3 h-3 bg-purple-400 mt-4 -ml-[5px] relative"></span>
+        <div class="border-t-2 border-purple-300 mt-5 w-8"></div>
         <li
           v-for="animal in node.animals"
           :key="animal.id"
@@ -67,6 +69,7 @@
             v-for="child in node.children"
             :key="child.id"
             :node="child"
+            :open_nodes="open_nodes"
             @add-line="addLineToParent"
             @reassign-parent="$emit('reassign-parent', $event)"
           />
@@ -83,7 +86,8 @@ const props = defineProps({
   node: {
     type: Object,
     required: true
-  }
+  },
+  open_nodes: Boolean
 });
 
 const emit = defineEmits(['add-line', 'reassign-parent']);
@@ -99,9 +103,7 @@ function handleDragLeave() {
   draggedOver.value = false;
 }
 
-const showMenu = ref(false);
-
-const isOpen = ref(false);
+const isOpen = ref(props.open_nodes);
 const hasChildren = computed(() => props.node.children && props.node.children.length > 0);
 
 // Toggle child visibility

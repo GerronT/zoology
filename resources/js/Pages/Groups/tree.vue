@@ -1,7 +1,7 @@
 <template>
   <div
     id="mainCanvas"
-    class="canvas-container relative w-full h-screen overflow-auto bg-gray-600"
+    class="canvas-container relative w-full h-screen overflow-auto bg-gray-600 overflow-hidden"
     @mousedown="startDragCanvas"
     @mousemove="dragCanvas"
     @mouseup="stopDragCanvas"
@@ -49,6 +49,7 @@
           v-for="group in treeData"
           :key="group.id"
           :node="group"
+          :open_nodes="open_nodes"
           @add-line="addLine"
           @reassign-parent="handleReassignParent"
         />
@@ -62,6 +63,11 @@ import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 import GroupTree from '../../Components/Groups/GroupTree.vue';
 
+const props = defineProps({
+  group_root_id: Number,
+  open_nodes: Boolean
+});
+
 const treeData = ref([]);
 const loading = ref(true);
 
@@ -74,8 +80,8 @@ const startMousePosition = ref({ x: 0, y: 0 });
 const lines = ref([]);
 
 // Canvas size (for grid calculations)
-const canvasWidth = 2000; // Set the width of the canvas (adjustable)
-const canvasHeight = 2000; // Set the height of the canvas (adjustable)
+const canvasWidth = 5000; // Set the width of the canvas (adjustable)
+const canvasHeight = 5000; // Set the height of the canvas (adjustable)
 
 // Define grid spacing (adjust this value to control the grid spacing)
 const gridSpacing = 100;
@@ -100,7 +106,11 @@ const gridLinesY = computed(() => {
 
 onMounted(async () => {
   try {
-    const response = await axios.get('/api/group-tree');
+    const response = await axios.get('/api/group-tree', {
+      params: {
+        group_root_id: props.group_root_id
+      },
+    });
     treeData.value = response.data.data;
   } catch (err) {
     console.error('Error loading tree:', err);

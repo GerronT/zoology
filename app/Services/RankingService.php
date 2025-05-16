@@ -20,8 +20,16 @@ class RankingService
     {
         $keyedByIds = $linkedList->keyBy('id');
 
-        // Find the root node (preceded_by_id === null)
-        $root = $linkedList->firstWhere('preceded_by_id', null);
+        $root = null;
+        foreach ($linkedList as $item) {
+            if (!is_null($item->preceded_by_id) && ($root === null || $item->preceded_by_id < $root->preceded_by_id)) {
+                $root = $item;
+            }
+        }
+
+        if (!$root) {
+            $root = $linkedList->firstWhere('preceded_by_id', null);
+        }
 
         $map = [];
         $current = $root;

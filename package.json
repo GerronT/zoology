@@ -21,9 +21,12 @@
         "vue": "^3.3.13"
     },
     "dependencies": {
+        "@inertiajs/inertia": "^0.11.1",
+        "@inertiajs/inertia-vue3": "^0.6.0",
         "@vueform/multiselect": "^2.6.11",
         "lodash.debounce": "^4.0.8",
         "vue3-blocks-tree": "^0.6.2",
-        "vue3-select": "^0.1.2"
+        "vue3-select": "^0.1.2",
+        "vuex": "^4.0.2"
     }
 }

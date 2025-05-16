@@ -28,8 +28,8 @@ class GroupController extends Controller
     public function create()
     {
         return Inertia::render('Groups/create', [
-            'classifications' => \App\Models\Classification::all(),
-            'levels' => \App\Models\Level::all(),
+            'classifications' => Classification::all(),
+            'levels' => Level::all(),
         ]);
     }
 
@@ -123,7 +123,12 @@ class GroupController extends Controller
 
      public function indexTree(Request $request, ?int $group_root_id = null)
      {
-        return Inertia::render('Groups/tree', ['group_root_id' => $group_root_id, 'open_nodes' => $request->has('openNodes')]);
+        return Inertia::render('Groups/tree', [
+            'classifications' => Classification::all(),
+            'levels' => Level::all(),
+            'group_root_id' => $group_root_id, 
+            'open_nodes' => $request->has('openNodes'),
+        ]);
      }
 
     public function tree(Request $request)

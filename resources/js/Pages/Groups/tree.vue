@@ -56,7 +56,7 @@
         />
       </div>
     </div>
-    <GroupFormModal :visible="showModal" :data="modalData" @close="closeModal"/>
+    <GroupFormModal :visible="showModal" :classifications="classifications" :levels="levels" :data="modalData" @close="closeModal"/>
   </div>
 </template>
 
@@ -67,6 +67,8 @@ import GroupTree from '../../Components/Groups/GroupTree.vue';
 import GroupFormModal from '../../Components/Modals/GroupFormModal.vue';
 
 const props = defineProps({
+  classifications: Array,
+  levels: Array,
   group_root_id: Number,
   open_nodes: Boolean
 });

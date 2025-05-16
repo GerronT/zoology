@@ -5,14 +5,14 @@
             <label class="font-semibold">
             {{ group.useNewGroup ? 'Create new' : 'Select existing' }} group
             </label>
-            <button v-if="isGroupEditable" type="button" class="text-sm text-blue-600 hover:underline" @click="switchGroupSelectNew">
+            <button v-if="isGroupEditable()" type="button" class="text-sm text-blue-600 hover:underline" @click="switchGroupSelectNew">
             {{ group.useNewGroup ? '🔁 Switch to existing group' : '➕ Create new group' }}
             </button>
         </div>
 
         <!-- Existing Group Dropdown -->
         <div v-if="!group.useNewGroup" class="mb-6">
-            <vue-select :v-model="group.id" :options="filteredSearchGroups()" @search="(query) => emit('onSearchGroup', query)" :get-option-label="getGroupLabel" :disabled="!isGroupEditable" placeholder="Search Group..." class="child-group-select" @update:modelValue="(selectedGroup) => updateGroupId(selectedGroup)">
+            <vue-select :v-model="group.id" :options="filteredSearchGroups()" @search="(query) => emit('onSearchGroup', query)" :get-option-label="getGroupLabel" :disabled="!isGroupEditable()" placeholder="Search Group..." class="child-group-select" @update:modelValue="(selectedGroup) => updateGroupId(selectedGroup)">
             <template #no-options>
                 <span v-if="index == 0">
                   <span v-if="groupSearchQuery[index]?.length > 0">🔍 No groups found. Try a different search.</span>
@@ -34,7 +34,7 @@
         </div>
 
         <!-- Remove button -->
-        <div class="text-right mt-4" v-if="index > 0 && isGroupEditable">
+        <div class="text-right mt-4" v-if="index > 0 && isGroupEditable()">
             <button type="button" class="px-4 py-2 bg-red-500 text-white rounded-md" @click="() => emit('removeGroup')">
               Remove
             </button>

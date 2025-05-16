@@ -34,11 +34,12 @@
 </template>
 
 <script>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, } from 'vue';
 import axios from 'axios';
 import debounce from 'lodash.debounce';
 import 'vue3-select/dist/vue3-select.css';
 import GroupItem from './GroupItem.vue';
+import { useStore } from 'vuex';
 
 export default {
   props: {
@@ -51,37 +52,11 @@ export default {
   },
   emits: ['addGroup', 'removeGroup', 'update:groups'],
   setup(props, { emit }) {
-    const buildRankedList = (linkedList) => {
-      // Create a map for easy lookup by id
-      const keyedByIds = Object.fromEntries(linkedList.map(l => [l.id, l]));
-      
-      // Find the item with the lowest preceded_by_id value
-      const root = linkedList.reduce((min, current) => {
-        return current.preceded_by_id < min.preceded_by_id ? current : min;
-      });
-      
-      const map = new Map();
-      let current = root;
-      let rank = 1; // top rank
-      
-      // Traverse the list from the root and assign ranks
-      while (current) {
-        map.set(current.id, rank);
-        current = keyedByIds[current.succeeded_by_id];
-        rank++;
-      }
+    const store = useStore();
 
-      return map;
-    };
-
-    // Create rank maps for classifications and levels
-    const classificationRanks = computed(() => {
-      return buildRankedList(props.classifications);
-    });
-
-    const levelRanks = computed(() => {
-      return buildRankedList(props.levels);
-    });
+    // Accessing the ranks from Vuex store
+    const classificationRanks = computed(() => store.getters.getClassificationRanks);
+    const levelRanks = computed(() => store.getters.getLevelRanks);
 
     // Rank functions
     const getFirstRankedId = (rankings) => {

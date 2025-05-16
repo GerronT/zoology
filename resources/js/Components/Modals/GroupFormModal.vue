@@ -4,7 +4,7 @@
         <h2 class="text-center text-xl font-bold mb-6">{{title}}</h2>
         <form @submit.prevent="submitGroup" class="animal-form">
             <!-- Animal Name and Alternate Name -->
-            <group-base-form :group="groupForm" @update:group="updateGroupForm"/>
+            <group-base-form :group="groupForm" @update:group="updateGroupForm" :filteredClassifications="filteredClassifications" :filteredLevels="filteredLevels"/>
         </form>
     </div>
   </BaseModal>
@@ -15,11 +15,14 @@ import { reactive, computed, watch, ref } from 'vue';
 import axios from 'axios';
 import BaseModal from "./BaseModal.vue";
 import GroupBaseForm from "../Groups/GroupBaseForm.vue";
+import { useStore } from 'vuex';
 
 export default {
   props: {
     data: Object,
     visible: Boolean,
+    classifications: Array,
+    levels: Array
   },
   components: {
     GroupBaseForm,
@@ -27,6 +30,12 @@ export default {
   },
   emits: ['close'],
   setup(props, {emit}) {
+    
+  const store = useStore();
+
+    const classificationRanks = computed(() => store.getters.getClassificationRanks);
+    const levelRanks = computed(() => store.getters.getLevelRanks);
+
     const defaultGroupForm = {
       name: '',
       classification_id: null,
@@ -69,6 +78,14 @@ export default {
         }
     };
 
+    const filteredClassifications = () => {
+      return props.classifications;
+    }
+
+    const filteredLevels = () => {
+      return props.levels;
+    }
+
     const emitClose = () => emit('close');
 
     const updateGroupForm = (newData) => {
@@ -95,6 +112,8 @@ export default {
     return {
         title,
         emitClose,
+        filteredClassifications,
+        filteredLevels,
         groupForm,
         updateGroupForm,
         isSaveGroupEnabled,

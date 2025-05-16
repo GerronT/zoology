@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use App\Http\Controllers\GroupController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\RankingController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -14,4 +15,8 @@ Route::get('/groups/{group}/youngest-ranked-ancestor', [GroupController::class, 
 Route::get('/group-tree', [GroupController::class, 'tree']);
 
 Route::post('/move-group', [GroupController::class, 'moveGroup']);
+
+
+
+Route::get('/ranks', [RankingController::class, 'index']);
 

@@ -9,6 +9,7 @@ use App\Http\Requests\StoreAnimalRequest;
 use App\Http\Requests\UpdateAnimalRequest;
 use Dotenv\Exception\ValidationException;
 use Inertia\Inertia;
+use App\Services\RankingService;
 
 class AnimalController extends Controller
 {
@@ -42,6 +43,8 @@ class AnimalController extends Controller
         return Inertia::render('Animals/create', [
             'classifications' => $classifications,
             'levels' => \App\Models\Level::all(),
+            'classificationRanks' => app(RankingService::class)->getClassificationRanks(),
+            'levelRanks' => app(RankingService::class)->getLevelRanks(),
         ]);
     }
 

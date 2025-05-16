@@ -3,7 +3,7 @@
     <h2 class="text-center text-xl font-bold mb-6">Add Animal</h2>
     <form @submit.prevent="submitAnimal" class="animal-form">
       <!-- Animal Name and Alternate Name -->
-      <animal-form v-model="animalForm" @update:modelValue="updateAnimalForm"/>
+      <animal-form :modelValue="animalForm" @update:modelValue="updateAnimalForm"/>
 
       <!-- Groupings section -->
       <group-form :classifications="classifications" :levels="levels" :groupings="groupForm.groupings" @addGroup="addGroup" @removeGroup="removeGroup">
@@ -44,9 +44,10 @@ export default {
       groupings: [{id: null, name: '', classification_id: null, level_id: 5, description: '', is_clade: false , useNewGroup: false}]
     });
 
-    const updateAnimalForm = (mutatedAnimalForm) => {
-      console.log(mutatedAnimalForm);
-      Object.assign(animalForm, { ...mutatedAnimalForm});
+    const updateAnimalForm = (newData) => {
+      if (animalForm.hasOwnProperty(newData.key)) {
+        animalForm[newData.key] = newData.value;
+      }
     };
 
     const addGroup = (useNewGroup) => {

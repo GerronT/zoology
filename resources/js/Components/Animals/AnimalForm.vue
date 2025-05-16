@@ -21,7 +21,7 @@
 </template>
 
 <script>
-import { reactive, watch } from 'vue';
+import { toRefs, watch } from 'vue';
 
 export default {
   props: {
@@ -31,16 +31,19 @@ export default {
     },
   },
   setup(props, { emit }) {
-    const form = reactive({ ...props.modelValue });
+    const { modelValue } = toRefs(props); // preserve reactivity to parent
 
-    // Watch for changes in form data and emit them
-    watch(() => form, (newValue) => {
-        emit('update:modelValue', newValue);
-      }, { deep: true }
-    );
+    const emitFieldUpdate = (key, value) => {
+      emit('update:modelValue', { key, value });
+    };
+
+    // Watch each field
+    watch(() => modelValue.value.name, (newVal) => emitFieldUpdate('name', newVal));
+    watch(() => modelValue.value.alt_name, (newVal) => emitFieldUpdate('alt_name', newVal));
+    watch(() => modelValue.value.description, (newVal) => emitFieldUpdate('description', newVal));
 
     return {
-      form,
+      form: modelValue,
     };
   },
 };

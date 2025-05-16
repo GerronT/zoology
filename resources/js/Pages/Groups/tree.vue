@@ -52,9 +52,11 @@
           :open_nodes="open_nodes"
           @add-line="addLine"
           @reassign-parent="handleReassignParent"
+          @open-modal="(data) => openModal(data)"
         />
       </div>
     </div>
+    <GroupFormModal :visible="showModal" :data="modalData" @close="closeModal"/>
   </div>
 </template>
 
@@ -62,11 +64,24 @@
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 import GroupTree from '../../Components/Groups/GroupTree.vue';
+import GroupFormModal from '../../Components/Modals/GroupFormModal.vue';
 
 const props = defineProps({
   group_root_id: Number,
   open_nodes: Boolean
 });
+
+const showModal = ref(false);
+const modalData = ref({});
+
+const openModal = (data) => {
+  modalData.value = data;
+  showModal.value = true;
+}
+
+const closeModal = () => {
+  showModal.value = false;
+}
 
 const treeData = ref([]);
 const loading = ref(true);

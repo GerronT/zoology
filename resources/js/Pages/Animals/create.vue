@@ -3,10 +3,10 @@
     <h2 class="text-center text-xl font-bold mb-6">Add Animal</h2>
     <form @submit.prevent="submitAnimal" class="animal-form">
       <!-- Animal Name and Alternate Name -->
-      <animal-form :modelValue="animalForm" @update:modelValue="updateAnimalForm"/>
+      <animal-form :animal="animalForm" @update:animal="updateAnimalForm"/>
 
       <!-- Groupings section -->
-      <group-form :classifications="classifications" :levels="levels" :groupings="groupForm.groupings" @addGroup="addGroup" @removeGroup="removeGroup">
+      <group-form :classifications="classifications" :levels="levels" :groupings="groupForm.groupings" @addGroup="addGroup" @removeGroup="removeGroup" @update:groups="updateGroupData">
         <template #cta>
           <button type="submit" class="px-4 py-2 bg-gray-800 text-white rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed" :disabled="!isSaveAnimalEnabled">
             💾 Save Animal
@@ -45,14 +45,16 @@ export default {
     });
 
     const updateAnimalForm = (newData) => {
-      if (animalForm.hasOwnProperty(newData.key)) {
-        animalForm[newData.key] = newData.value;
-      }
+      animalForm[newData.key] = newData.value;
     };
 
     const addGroup = (useNewGroup) => {
       groupForm.groupings.push({id: null, name: '', classification_id: null, level_id: 5, description: '', is_clade: false, useNewGroup: useNewGroup ?? false});
     }
+
+    const updateGroupData = (index, newData) => {
+      groupForm.groupings[index][newData.key] = newData.value;
+    };
 
     const removeGroup = (index) => {
       groupForm.groupings.splice(index, 1);
@@ -101,6 +103,7 @@ export default {
       groupForm,
       addGroup,
       removeGroup,
+      updateGroupData,
 
       isSaveAnimalEnabled,
       submitAnimal,

@@ -28,10 +28,10 @@
 
           <div class="absolute right-0 mb-8 -mr-4">
           <div class="flex items-center gap-1">
-            <button class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-green-800 bg-green-100 border-2 border-green-300 rounded hover:bg-green-200 transition" title="Add">
+            <button @click="openModal({type: 'add', group: props.node})" class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-green-800 bg-green-100 border-2 border-green-300 rounded hover:bg-green-200 transition" title="Add">
               ➕
             </button>
-            <button class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-blue-800 bg-blue-100 border-2 border-blue-300 rounded hover:bg-blue-200 transition" title="Edit">
+            <button @click="openModal({type: 'edit', group: props.node})" class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-blue-800 bg-blue-100 border-2 border-blue-300 rounded hover:bg-blue-200 transition" title="Edit">
               ✏️
             </button>
             <button class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-red-800 bg-red-100 border-2 border-red-300 rounded hover:bg-red-200 transition" title="Delete">
@@ -72,6 +72,7 @@
             :open_nodes="open_nodes"
             @add-line="addLineToParent"
             @reassign-parent="$emit('reassign-parent', $event)"
+            @open-modal="(data) => openModal(data)"
           />
         </ul>
       </transition>
@@ -90,9 +91,13 @@ const props = defineProps({
   open_nodes: Boolean
 });
 
-const emit = defineEmits(['add-line', 'reassign-parent']);
+const emit = defineEmits(['add-line', 'reassign-parent', 'open-modal']);
 
 const draggedOver = ref(false);
+
+function openModal(data) {
+  emit('open-modal', data);
+}
 
 function handleDragOver(event) {
   event.preventDefault();

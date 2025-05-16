@@ -7,18 +7,19 @@
             :index="index"
 
             :groupSearchQuery="groupSearchQuery"
-            :isGroupEditable="isGroupEditable"
-            :filteredSearchGroups="filteredSearchGroups"
-            :filteredClassifications="filteredClassifications"
-            :filteredLevels="filteredLevels"
+            :isGroupEditable="() => isGroupEditable(index)"
+            :filteredSearchGroups="() => filteredSearchGroups(index)"
+            :filteredClassifications="() => filteredClassifications(index)"
+            :filteredLevels="() => filteredLevels(index, group.classification_id)"
 
             :getClassificationById="getClassificationById"
             :getLevelById="getLevelById"
 
-            @removeGroup="removeGroup"
-            @onSearchGroup="onSearchGroup"
+            @removeGroup="() => removeGroup(index)"
+            @onSearchGroup="(query) => onSearchGroup(query, index)"
             @removeGroupFromPreselected="removeGroupFromPreselected"
             @addGroupToPreselected="addGroupToPreselected"
+            @update:group="(data) => emit('update:groups', index, data)"
         />
       </div>
 
@@ -48,7 +49,7 @@ export default {
   components: {
     GroupItem
   },
-  emits: ['addGroup', 'removeGroup'],
+  emits: ['addGroup', 'removeGroup', 'update:groups'],
   setup(props, { emit }) {
     const buildRankedList = (linkedList) => {
       // Create a map for easy lookup by id
@@ -340,7 +341,15 @@ export default {
       }
     );
 
+    const updateGroupData = (index, newData) => {
+      if (group.hasOwnProperty(newData.key)) {
+        group[newData.key] = newData.value;
+      }
+    };
+
     return {
+      emit,
+
       addGroup,
       isAddSubgroupEnabled,
       

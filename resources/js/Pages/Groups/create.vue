@@ -3,7 +3,7 @@
     <h2 class="text-center text-xl font-bold mb-6">Add Group(s)</h2>
     <form @submit.prevent="submitGroups" class="group-form">
       <!-- Groupings section -->
-      <group-form :classifications="classifications" :levels="levels" :groupings="form.groupings" @addGroup="addGroup" @removeGroup="removeGroup">
+      <group-form :classifications="classifications" :levels="levels" :groupings="form.groupings" @update:groups="updateGroupData" @addGroup="addGroup" @removeGroup="removeGroup">
         <template #cta>
           <button type="submit" class="px-4 py-2 bg-gray-800 text-white rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed" :disabled="!isSaveGroupEnabled">
             💾 Save Group(s)
@@ -33,16 +33,16 @@ export default {
       groupings: [{id: null, name: '', classification_id: null, level_id: 5, description: '', is_clade: false , useNewGroup: false}]
     });
 
-    const updateFormData = (newFormData) => {
-      form.value = { ...formData.value, ...newFormData };
-    };
-
     const addGroup = (useNewGroup) => {
       form.groupings.push({id: null, name: '', classification_id: null, level_id: 5, description: '', is_clade: false, useNewGroup: useNewGroup ?? false});
     }
 
     const removeGroup = (index) => {
       form.groupings.splice(index, 1);
+    };
+
+    const updateGroupData = (index, newData) => {
+      form.groupings[index][newData.key] = newData.value;
     };
 
     // Computed logic for enabling the 'Save Group' button
@@ -65,10 +65,10 @@ export default {
 
     return {
       form,
-      updateFormData,
 
       addGroup,
       removeGroup,
+      updateGroupData,
 
       isSaveGroupEnabled,
       submitGroups,

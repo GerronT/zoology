@@ -102,18 +102,35 @@ class GroupController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Group $group)
+    public function destroy(Request $request, Group $group)
     {
-        $group->load('children');
+        $exterminate = $request->input('exterminate');
 
-        foreach ($group->children as $child) {
-            $child->parent_group_id = $group->parent_group_id;
-            $child->save();
+        if ($exterminate) {
+            $this->deleteAllGroupDescendants($group);
+        } else {
+            $group->load('children');
+
+            foreach ($group->children as $child) {
+                $child->parent_group_id = $group->parent_group_id;
+                $child->save();
+            }
         }
 
         $group->delete();
 
         return response()->json(true);
+    }
+
+    private function deleteAllGroupDescendants(Group $group)
+    {
+        $group->load('children');
+
+        foreach ($group->children as $child) {
+            $this->deleteAllGroupDescendants($child);
+        }
+
+        $group->delete();
     }
 
     public function createChild(Request $request)

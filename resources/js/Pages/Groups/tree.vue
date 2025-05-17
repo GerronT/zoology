@@ -58,7 +58,24 @@
       </div>
     </div>
     <GroupFormModal :visible="showModal" :classifications="classifications" :levels="levels" :data="modalData" @close="closeModal"/>
-    <ConfirmationModal :visible="showDeleteConfirmationModal" title="Delete Group" description="Any child groups from this group will be adopted by its parent group. Are you sure you would like to proceed?" button="Delete" :functionCall="deleteGroup" @close="closeDeleteConfirmationModal"/>
+    <ConfirmationModal :visible="showDeleteConfirmationModal" @close="closeDeleteConfirmationModal" :inProgress="isDeleting">
+      <template #header>
+        <h2 class="text-xl font-bold mb-6 text-center">Group Removal</h2>
+      </template>
+      <template #body>
+        <p class="text-center my-8">Choosing <span class="font-bold text-red-400 italic">`Remove Group`</span> will have its child groups be adopted by its parent group. If you however want to remove this group along with all of its descendants, please choose <span class="font-bold text-red-800 italic">'Exterminate Group'</span> instead.</p>
+      </template>
+      <template #extraButtons>
+        <div class="flex flex-col items-end gap-2 mt-6">
+          <button @click="() => deleteGroup(false)" type="submit" class="px-4 py-2 bg-red-400 enabled:hover:brightness-75 text-white rounded-md disabled:bg-red-100 disabled:cursor-not-allowed" :disabled="isDeleting">
+            Remove Group
+          </button>
+          <button @click="() => deleteGroup(true)" type="submit" class="flex items-center gap-1 pl-2 pr-4 py-2 bg-red-800 enabled:hover:brightness-75 text-white rounded-md disabled:bg-red-200 disabled:cursor-not-allowed" :disabled="isDeleting">
+            <span>⚠️</span><span>Exterminate Group</span>
+          </button>
+        </div>
+      </template>
+    </ConfirmationModal>
   </div>
 </template>
 
@@ -99,15 +116,23 @@ const closeDeleteConfirmationModal = () => {
   showDeleteConfirmationModal.value = false;
 }
 
-const deleteGroup = async () => {
+const isDeleting = ref(false);
+const deleteGroup = async (exterminate = false) => {
+  isDeleting.value = true;
   try {
     const id = idToDelete.value;
-    await axios.delete(`/groups/${id}`);
+    await axios.delete(`/groups/${id}`, {
+      data: {
+        exterminate: exterminate
+      },
+    });
     alert('Group deleted!');
     location.reload();
   } catch (e) {
     alert('Error deleted group');
   }
+  isDeleting.value = false;
+  closeDeleteConfirmationModal();
 };
 
 const treeData = ref([]);

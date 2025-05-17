@@ -91,33 +91,38 @@ class Group extends Model
         return isset($levelRanks[$this->level_id]) ? $levelRanks[$this->level_id] : null;
     }
 
-    public function getYoungestRankedAncestor()
+    private function isRanked()
     {
-        if ($this->classification_id && $this->level_id) {
+        return $this->classification_id && $this->level_id;
+    }
+
+    public function getYoungestRankedAncestor($includeSelf = true)
+    {
+        if (!$includeSelf) {
+            return $this->parent ? $this->parent->getYoungestRankedAncestor() : null;
+        }
+
+        if ($this->isRanked()) {
             return $this;
         }
 
-        if ($this->parent) {
-            return $this->parent->getYoungestRankedAncestor();
-        }
-
-        return null;
+        return $this->parent ? $this->parent->getYoungestRankedAncestor() : null;
     }
 
-    public function getBestRankedDescendant()
+
+    public function getBestRankedDescendant($includeSelf = true)
     {
-        if ($this->classification_id && $this->level_id) {
+        if ($includeSelf && $this->isRanked()) {
             return $this;
         }
 
         $bestDescendant = null;
 
         foreach ($this->children as $child) {
-            $bestDescendantForChild = $child->getBestRankedDescendant();
-            if ($bestDescendantForChild !== null) {
-                if ($bestDescendant === null || $bestDescendantForChild->getComboRank() < $bestDescendant->getComboRank()) {
-                    $bestDescendant = $bestDescendantForChild;
-                }
+            $candidate = $child->getBestRankedDescendant();
+
+            if ($candidate && ($bestDescendant === null || $candidate->getComboRank() < $bestDescendant->getComboRank())) {
+                $bestDescendant = $candidate;
             }
         }
 

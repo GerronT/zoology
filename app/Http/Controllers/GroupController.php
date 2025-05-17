@@ -90,7 +90,13 @@ class GroupController extends Controller
      */
     public function update(UpdateGroupRequest $request, Group $group)
     {
-        //
+        $group->name = $request->input('name');
+        $group->classification_id = $request->input('classification_id');
+        $group->level_id = $request->input('level_id');
+        $group->description = $request->input('description');
+        $group->save();
+        
+        return response()->json($group);
     }
 
     /**
@@ -98,7 +104,29 @@ class GroupController extends Controller
      */
     public function destroy(Group $group)
     {
-        //
+        $group->load('children');
+
+        foreach ($group->children as $child) {
+            $child->parent_group_id = $group->parent_group_id;
+            $child->save();
+        }
+
+        $group->delete();
+
+        return response()->json(true);
+    }
+
+    public function createChild(Request $request)
+    {
+        $group = Group::create([
+            'name' => $request->input('name'),
+            'classification_id' => $request->input('classification_id'),
+            'level_id' => $request->input('level_id'),
+            'description' => $request->input('description'),
+            'parent_group_id' => $request->input('parent_group_id'),
+        ]);
+
+        return response()->json($group, 201);
     }
 
     public function search(Request $request)

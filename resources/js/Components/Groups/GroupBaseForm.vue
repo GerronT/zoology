@@ -17,15 +17,15 @@
         <div v-if="!group.is_clade">
         <!-- Classification -->
         <label class="block font-semibold mb-1">Classification</label>
-        <select v-model="group.classification_id" :disabled="!isGroupEditable()" class="w-full p-2 border border-gray-300 rounded-md mb-4">
-            <option disabled :value="null">Select classification</option>
+        <select v-model="group.classification_id" required :disabled="!isGroupEditable()" class="w-full p-2 border border-gray-300 rounded-md mb-4">
+            <option disabled :value="''">Select classification</option>
             <option v-for="c in filteredClassifications()" :key="c.id" :value="c.id">{{ c.name }}</option>
         </select>
 
         <!-- Level -->
         <label class="block font-semibold mb-1">Level</label>
-        <select v-model="group.level_id" :disabled="!isGroupEditable() || !group.classification_id" class="w-full p-2 border border-gray-300 rounded-md mb-4">
-            <option disabled :value="null">Select level</option>
+        <select v-model="group.level_id" required :disabled="!isGroupEditable() || !group.classification_id" class="w-full p-2 border border-gray-300 rounded-md mb-4">
+            <option disabled :value="''">Select level</option>
             <option v-for="l in filteredLevels()" :key="l.id" :value="l.id">{{ l.name }}</option>
         </select>
         </div>
@@ -60,7 +60,7 @@ export default {
 
     // Emit updates when any field changes
     const updateGroupField = (key, value) => {
-      emit('update:group', { key, value });
+      emit('update:group', key, value);
     };
 
     // Watch each field individually
@@ -72,9 +72,10 @@ export default {
 
     const cladeGroupToggle = (isOn) => {
       if (isOn) {
-        updateGroupField('classification_id', null);
-        updateGroupField('level_id', null);
+        updateGroupField('classification_id', '');
+        updateGroupField('level_id', '');
       } else {
+        updateGroupField('classification_id', '');
         updateGroupField('level_id', 5);
       }
     };

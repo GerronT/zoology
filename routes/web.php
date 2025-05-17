@@ -24,6 +24,10 @@ Route::get('/groups/create', [GroupController::class, 'create']);
 Route::post('/groups', [GroupController::class, 'store']);
 Route::get('/groups/tree/{group_root_id?}', [GroupController::class, 'indexTree']);
 
+Route::post('/groups/create-child', [GroupController::class, 'createChild']);
+Route::post('/groups/{group}/update', [GroupController::class, 'update']);
+Route::delete('/groups/{group}', [GroupController::class, 'destroy']);
+
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),

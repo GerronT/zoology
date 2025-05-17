@@ -32,8 +32,8 @@ export default {
       description: '',
     });
 
-    const updateAnimalForm = (newData) => {
-      animalForm[newData.key] = newData.value;
+    const updateAnimalForm = (key, value) => {
+      animalForm[key] = value;
     };
 
     // Submit form

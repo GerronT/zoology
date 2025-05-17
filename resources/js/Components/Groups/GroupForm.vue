@@ -19,7 +19,7 @@
             @onSearchGroup="(query) => onSearchGroup(query, index)"
             @removeGroupFromPreselected="removeGroupFromPreselected"
             @addGroupToPreselected="addGroupToPreselected"
-            @update:group="(data) => emit('update:groups', index, data)"
+            @update:group="(key, value) => emit('update:groups', index, key, value)"
         />
       </div>
 
@@ -39,7 +39,9 @@ import axios from 'axios';
 import debounce from 'lodash.debounce';
 import 'vue3-select/dist/vue3-select.css';
 import GroupItem from './GroupItem.vue';
+import { RankTypes } from '@/constants/rankTypes';
 import { useStore } from 'vuex';
+
 
 export default {
   props: {
@@ -55,34 +57,7 @@ export default {
     const store = useStore();
 
     // Accessing the ranks from Vuex store
-    const classificationRanks = computed(() => store.getters.getClassificationRanks);
-    const levelRanks = computed(() => store.getters.getLevelRanks);
-
-    // Rank functions
-    const getFirstRankedId = (rankings) => {
-      for (const [id, rank] of rankings.entries()) {
-        if (rank === 1) return id;
-      }
-      return null;
-    };
-
-    const isLastRanked = (id, rankings) => {
-      const maxRank = Math.max(...rankings.values());
-      return rankings.get(id) === maxRank;
-    };
-
-    const getNextRankedId = (id, rankings) => {
-      const currentRank = rankings.get(id);
-      if (!currentRank) return null;
-
-      for (const [otherId, rank] of rankings.entries()) {
-        if (rank === currentRank + 1) {
-          return otherId;
-        }
-      }
-
-      return null;
-    };
+    const levelRanks = computed(() => store.getters.getRanks(RankTypes.LEVEL));
 
     // Collect preselected groups for quick search
     const preselectedGroups = ref([]);
@@ -230,15 +205,15 @@ export default {
       const yngRnkAncestor = youngestRankedAncestor(index);
 
       if (yngRnkAncestor) {
-        const nextClassRankId = getNextRankedId(yngRnkAncestor.classification_id, classificationRanks.value);
+        const nextClassRankId = store.getters.getNextRankedId(RankTypes.CLASSIFICATION, yngRnkAncestor.classification_id);
         return props.classifications.filter(c => {
             if (nextClassRankId && nextClassRankId == c.id) return true;
-            if (!isLastRanked(yngRnkAncestor.level_id, levelRanks.value) && c.id === yngRnkAncestor.classification_id) return true;
+            if (c.id === yngRnkAncestor.classification_id && !store.getters.isLastRanked(RankTypes.LEVEL, yngRnkAncestor.level_id)) return true;
             return false;
         });
       }
 
-      const rankedFirstClassId = getFirstRankedId(classificationRanks.value);
+      const rankedFirstClassId = store.getters.getFirstRankedId(RankTypes.CLASSIFICATION);
 
       return props.classifications.filter(c => {
         return c.id == rankedFirstClassId;
@@ -249,12 +224,11 @@ export default {
     const filteredLevels = (index, classificationId) => {
       const yngRnkAncestor = youngestRankedAncestor(index);
 
-      if (yngRnkAncestor) {
-        if (yngRnkAncestor.classification_id == classificationId) {
-            return props.levels.filter(l => {
-                return levelRanks.value.get(l.id) > levelRanks.value.get(yngRnkAncestor.level_id);
-            });
-        }
+      if (yngRnkAncestor?.classification_id == classificationId) {
+          const bestRank = levelRanks.value.get(yngRnkAncestor.level_id);
+          return props.levels.filter(l => {
+              return levelRanks.value.get(l.id) > bestRank;
+          });
       }
 
       return props.levels;
@@ -276,7 +250,7 @@ export default {
         const requiredFieldsAreFilled = actGroup.useNewGroup ? actGroup.name && (actGroup.is_clade || actGroup.classification_id && actGroup.level_id) : actGroup.id;
         if (!requiredFieldsAreFilled) return false;
 
-        const lastClassLevelComboSelected = isLastRanked(actGroup.classification_id, classificationRanks.value) && isLastRanked(actGroup.level_id, levelRanks.value);
+        const lastClassLevelComboSelected = store.getters.isLastRanked(RankTypes.CLASSIFICATION, actGroup.classification_id) && store.getters.isLastRanked(RankTypes.LEVEL, actGroup.level_id);
         if (lastClassLevelComboSelected) return false;
       }
 
@@ -303,7 +277,7 @@ export default {
             const levels = filteredLevels(i, newVal.classificationId);
             const isCurrentLevelStillValid = levels.some(l => l.id === group.level_id);
             if (!isCurrentLevelStillValid) {
-              group.level_id = null;
+              group.level_id = '';
             }
           }
 
@@ -315,12 +289,6 @@ export default {
         });
       }
     );
-
-    const updateGroupData = (index, newData) => {
-      if (group.hasOwnProperty(newData.key)) {
-        group[newData.key] = newData.value;
-      }
-    };
 
     return {
       emit,

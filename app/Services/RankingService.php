@@ -20,15 +20,14 @@ class RankingService
     {
         $keyedByIds = $linkedList->keyBy('id');
 
-        $root = null;
-        foreach ($linkedList as $item) {
-            if (!is_null($item->preceded_by_id) && ($root === null || $item->preceded_by_id < $root->preceded_by_id)) {
-                $root = $item;
-            }
-        }
+        $root = $linkedList->firstWhere('preceded_by_id', null);
 
         if (!$root) {
-            $root = $linkedList->firstWhere('preceded_by_id', null);
+            $minPrecededById = $linkedList
+                ->whereNotNull('preceded_by_id')
+                ->min('preceded_by_id');
+
+            $root = $linkedList->firstWhere('id', $minPrecededById);
         }
 
         $map = [];

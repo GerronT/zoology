@@ -5,11 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Animal;
 use App\Models\Classification;
 use App\Models\Group;
+use App\Models\Level;
 use App\Http\Requests\StoreAnimalRequest;
 use App\Http\Requests\UpdateAnimalRequest;
-use Dotenv\Exception\ValidationException;
 use Inertia\Inertia;
-use App\Services\RankingService;
 
 class AnimalController extends Controller
 {
@@ -26,25 +25,9 @@ class AnimalController extends Controller
      */
     public function create()
     {
-        // Fetch the "Kingdom" classification
-        $kingdom = Classification::where('name', 'Kingdom')->first();
-
-        if ($kingdom) {
-            $classifications = [];
-            $current = $kingdom;
-            while ($current) {
-                $classifications[] = $current; // Add the current item to the result
-                $current = Classification::find($current->succeeded_by_id);
-            }
-        } else {
-            $classifications = Classification::all();
-        }
-
         return Inertia::render('Animals/create', [
-            'classifications' => $classifications,
-            'levels' => \App\Models\Level::all(),
-            'classificationRanks' => app(RankingService::class)->getClassificationRanks(),
-            'levelRanks' => app(RankingService::class)->getLevelRanks(),
+            'classifications' => Classification::all(),
+            'levels' => Level::all(),
         ]);
     }
 

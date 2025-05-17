@@ -34,7 +34,7 @@ export default {
     const { animal } = toRefs(props); // preserve reactivity to parent
 
     const emitFieldUpdate = (key, value) => {
-      emit('update:animal', { key, value });
+      emit('update:animal', key, value);
     };
 
     watch(() => animal.value.name, (newVal) => emitFieldUpdate('name', newVal));

@@ -41,19 +41,19 @@ export default {
     });
 
     const groupForm = reactive({
-      groupings: [{id: null, name: '', classification_id: null, level_id: 5, description: '', is_clade: false , useNewGroup: false}]
+      groupings: [{id: null, name: '', classification_id: '', level_id: 5, description: '', is_clade: false , useNewGroup: false}]
     });
 
-    const updateAnimalForm = (newData) => {
-      animalForm[newData.key] = newData.value;
+    const updateAnimalForm = (key, value) => {
+      animalForm[key] = value;
     };
 
     const addGroup = (useNewGroup) => {
-      groupForm.groupings.push({id: null, name: '', classification_id: null, level_id: 5, description: '', is_clade: false, useNewGroup: useNewGroup ?? false});
+      groupForm.groupings.push({id: null, name: '', classification_id: '', level_id: 5, description: '', is_clade: false, useNewGroup: useNewGroup ?? false});
     }
 
-    const updateGroupData = (index, newData) => {
-      groupForm.groupings[index][newData.key] = newData.value;
+    const updateGroupData = (index, key, value) => {
+      groupForm.groupings[index][key] = value;
     };
 
     const removeGroup = (index) => {

@@ -30,19 +30,19 @@ export default {
   },
   setup(props) {
     const form = reactive({
-      groupings: [{id: null, name: '', classification_id: null, level_id: 5, description: '', is_clade: false , useNewGroup: false}]
+      groupings: [{id: null, name: '', classification_id: '', level_id: 5, description: '', is_clade: false , useNewGroup: false}]
     });
 
     const addGroup = (useNewGroup) => {
-      form.groupings.push({id: null, name: '', classification_id: null, level_id: 5, description: '', is_clade: false, useNewGroup: useNewGroup ?? false});
+      form.groupings.push({id: null, name: '', classification_id: '', level_id: 5, description: '', is_clade: false, useNewGroup: useNewGroup ?? false});
     }
 
     const removeGroup = (index) => {
       form.groupings.splice(index, 1);
     };
 
-    const updateGroupData = (index, newData) => {
-      form.groupings[index][newData.key] = newData.value;
+    const updateGroupData = (index, key, value) => {
+      form.groupings[index][key] = value;
     };
 
     // Computed logic for enabling the 'Save Group' button

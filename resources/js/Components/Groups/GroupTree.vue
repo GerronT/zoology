@@ -34,7 +34,7 @@
             <button @click="openModal({type: 'edit', group: props.node})" class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-blue-800 bg-blue-100 border-2 border-blue-300 rounded hover:bg-blue-200 transition" title="Edit">
               ✏️
             </button>
-            <button class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-red-800 bg-red-100 border-2 border-red-300 rounded hover:bg-red-200 transition" title="Delete">
+            <button @click="openDeleteConfirmationModal(props.node.id)" class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-red-800 bg-red-100 border-2 border-red-300 rounded hover:bg-red-200 transition" title="Delete">
               🗑️
             </button>
           </div>
@@ -73,6 +73,7 @@
             @add-line="addLineToParent"
             @reassign-parent="$emit('reassign-parent', $event)"
             @open-modal="(data) => openModal(data)"
+            @delete-modal="(id) => openDeleteConfirmationModal(id)"
           />
         </ul>
       </transition>
@@ -91,12 +92,16 @@ const props = defineProps({
   open_nodes: Boolean
 });
 
-const emit = defineEmits(['add-line', 'reassign-parent', 'open-modal']);
+const emit = defineEmits(['add-line', 'reassign-parent', 'open-modal', 'delete-modal']);
 
 const draggedOver = ref(false);
 
 function openModal(data) {
   emit('open-modal', data);
+}
+
+function openDeleteConfirmationModal(id) {
+  emit('delete-modal', id);
 }
 
 function handleDragOver(event) {
@@ -168,7 +173,6 @@ function mouseUpMainCanvas(elementId = "mainCanvas") {
     element.dispatchEvent(mouseUpEvent);
   }
 }
-
 
 </script>
 

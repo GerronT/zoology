@@ -53,10 +53,12 @@
           @add-line="addLine"
           @reassign-parent="handleReassignParent"
           @open-modal="(data) => openModal(data)"
+          @delete-modal="(id) => openDeleteConfirmationModal(id)"
         />
       </div>
     </div>
     <GroupFormModal :visible="showModal" :classifications="classifications" :levels="levels" :data="modalData" @close="closeModal"/>
+    <ConfirmationModal :visible="showDeleteConfirmationModal" title="Delete Group" description="Any child groups from this group will be adopted by its parent group. Are you sure you would like to proceed?" button="Delete" :functionCall="deleteGroup" @close="closeDeleteConfirmationModal"/>
   </div>
 </template>
 
@@ -65,6 +67,7 @@ import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 import GroupTree from '../../Components/Groups/GroupTree.vue';
 import GroupFormModal from '../../Components/Modals/GroupFormModal.vue';
+import ConfirmationModal from '../../Components/Modals/ConfirmationModal.vue';
 
 const props = defineProps({
   classifications: Array,
@@ -84,6 +87,28 @@ const openModal = (data) => {
 const closeModal = () => {
   showModal.value = false;
 }
+
+const showDeleteConfirmationModal = ref(false);
+const idToDelete = ref(null);
+const openDeleteConfirmationModal = (id) => {
+  idToDelete.value = id;
+  showDeleteConfirmationModal.value = true;
+}
+const closeDeleteConfirmationModal = () => {
+  idToDelete.value = null;
+  showDeleteConfirmationModal.value = false;
+}
+
+const deleteGroup = async () => {
+  try {
+    const id = idToDelete.value;
+    await axios.delete(`/groups/${id}`);
+    alert('Group deleted!');
+    location.reload();
+  } catch (e) {
+    alert('Error deleted group');
+  }
+};
 
 const treeData = ref([]);
 const loading = ref(true);
@@ -168,7 +193,11 @@ const handleReassignParent = async ({ childId, newParentId }) => {
       child_id: childId,
       new_parent_id: newParentId
     });
-    const response = await axios.get('/api/group-tree');
+    const response = await axios.get('/api/group-tree', {
+      params: {
+        group_root_id: props.group_root_id
+      },
+    });
     treeData.value = response.data.data;
   } catch (err) {
     if (err.response && err.response.data) {

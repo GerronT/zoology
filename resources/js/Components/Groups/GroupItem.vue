@@ -66,7 +66,7 @@ export default {
   emits: ['removeGroup', 'onSearchGroup', 'removeGroupFromPreselected', 'addGroupToPreselected', 'update:group'],
   setup(props, { emit }) {
     const updateGroupField = (key, value) => {
-      emit('update:group', { key, value });
+      emit('update:group', key, value);
     };
 
     const switchGroupSelectNew = () => {
@@ -76,7 +76,7 @@ export default {
         updateGroupField('id', null);
       } else {
         updateGroupField('name', '');
-        updateGroupField('classification_id', null);
+        updateGroupField('classification_id', '');
         updateGroupField('level_id', 5);
         updateGroupField('description', '');
         updateGroupField('is_clade', false);

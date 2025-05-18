@@ -171,22 +171,41 @@ class GroupController extends Controller
         return Inertia::render('Groups/tree', [
             'classifications' => Classification::all(),
             'levels' => Level::all(),
-            'group_root_id' => $group_root_id, 
-            'open_nodes' => $request->has('openNodes'),
+            'group_root_id' => $group_root_id,
         ]);
      }
 
     public function tree(Request $request)
     {
         $groupRootId = $request->query('group_root_id');
-        
-        $rootGroups = Group::where(function($q) use ($groupRootId) {
-            return $groupRootId ? $q->where('id', $groupRootId) : $q->whereNull('parent_group_id');
-        })
-        ->with(['children', 'classification', 'level', 'animals'])
-        ->get();
 
-        return GroupTreeResource::collection($rootGroups);
+        $query = Group::query();
+
+        if ($groupRootId) {
+            $query->where('id', $groupRootId);
+        } else {
+            $query->whereNull('parent_group_id');
+        }
+
+        $groups = $query->with(['classification', 'level', 'animals'])->get();
+
+        return GroupTreeResource::collection($groups);
+    }
+
+    public function children(Group $group)
+    {
+        $children = $group->children()
+            ->with(['classification', 'level', 'animals'])
+            ->get();
+
+        return GroupTreeResource::collection($children);
+    }
+
+    public function self(Group $group)
+    {
+        $group->load(['classification', 'level', 'animals']);
+
+        return new GroupTreeResource($group);
     }
 
     public function youngestRankedAncestor(Group $group)

@@ -143,7 +143,7 @@ export default {
       }
 
       try {
-        const response = await axios.get(`/api/groups/${parentId}/children`);
+        const response = await axios.get(`/api/groups/${parentId}/children-only`);
         childGroupOptions.value[index] = response.data;
       } catch (error) {
         console.error(`Error fetching children for group ${parentId}`, error);

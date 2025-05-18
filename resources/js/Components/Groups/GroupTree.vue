@@ -1,10 +1,10 @@
 <template>
   <ul class="relative inline-flex">
-    <span class="rounded-full" :class="node.is_root ? 'bg-red-700 w-5 h-5 mt-4' : 'w-3 h-3 bg-yellow-500 mt-5 -ml-[5px]'"></span>
+    <span class="rounded-full" :class="self.is_root ? 'bg-red-700 w-5 h-5 mt-4' : 'w-3 h-3 bg-yellow-500 mt-5 -ml-[5px]'"></span>
     <div class="border-t-2 border-orange-300 mt-6 w-8 border-dashed"></div>
     <li
       class="relative before:absolute before:left-6 before:border-l-2 before:border-orange-300 mt-2 before:top-0 before:h-full before:border-dotted"
-      :id="`node-${node.id}`"
+      :id="`node-${self.id}`"
     >
       <div class="relative inline-flex items-center">
           <div
@@ -17,24 +17,24 @@
             @click="toggle"
             @mouseup="(e) => mouseUpMainCanvas()"
             @mouseleave="(e) => mouseUpMainCanvas()"
-            :class="`bg-gradient-to-r from-${node.primary_class} to-${node.secondary_class} border-orange-300` + (draggedOver ? ` brightness-200` : ``)"
+            :class="`bg-gradient-to-r from-${self.primary_class} to-${self.secondary_class} border-orange-300` + (draggedOver ? ` brightness-200` : ``) + (isFetchingData ? ' cursor-wait' : ' cursor-pointer')"
           >
-            <span v-if="hasChildren" class="w-4 text-xs text-orange-500">{{ isOpen ? '▼' : '▶' }}</span>
-            <strong class="text-sm text-gray-800">{{ node.name }}</strong>
-            <span v-if="node.classification" class="text-xs text-gray-500">({{ node.classification }})</span>
-            <span v-if="node.level" class="text-xs text-gray-400">- Level: {{ node.level }}</span>
-            <span v-if="!node.classification && !node.level" class="text-xs text-gray-400 italic">- (Unranked Clade)</span>
+            <span v-if="self.has_children" class="w-4 text-xs text-orange-500">{{ isOpen ? '▼' : '▶' }}</span>
+            <strong class="text-sm text-gray-800">{{ self.name }}</strong>
+            <span v-if="self.classification" class="text-xs text-gray-500">({{ self.classification }})</span>
+            <span v-if="self.level" class="text-xs text-gray-400">- Level: {{ self.level }}</span>
+            <span v-if="!self.classification && !self.level" class="text-xs text-gray-400 italic">- (Unranked Clade)</span>
           </div>
 
           <div class="absolute right-0 mb-8 -mr-4">
           <div class="flex items-center gap-1">
-            <button @click="openModal({type: 'add', group: props.node})" class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-green-800 bg-green-100 border-2 border-green-300 rounded hover:bg-green-200 transition" title="Add">
+            <button @click="openModal({type: 'add', group: self})" class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-green-800 bg-green-100 border-2 border-green-300 rounded hover:bg-green-200 transition" title="Add">
               ➕
             </button>
-            <button @click="openModal({type: 'edit', group: props.node})" class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-blue-800 bg-blue-100 border-2 border-blue-300 rounded hover:bg-blue-200 transition" title="Edit">
+            <button @click="openModal({type: 'edit', group: self})" class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-blue-800 bg-blue-100 border-2 border-blue-300 rounded hover:bg-blue-200 transition" title="Edit">
               ✏️
             </button>
-            <button @click="openDeleteConfirmationModal(props.node.id)" class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-red-800 bg-red-100 border-2 border-red-300 rounded hover:bg-red-200 transition" title="Delete">
+            <button @click="openDeleteConfirmationModal(self)" class="h-4 w-4 flex items-center justify-center text-[8px] font-medium text-red-800 bg-red-100 border-2 border-red-300 rounded hover:bg-red-200 transition" title="Delete">
               🗑️
             </button>
           </div>
@@ -42,11 +42,11 @@
       </div>
 
       <!-- Animals list -->
-      <ul v-show="node.animals?.length" class="ml-6 flex flex-row">
+      <ul v-show="self.animals?.length" class="ml-6 flex flex-row">
         <span class="rounded-full w-3 h-3 bg-purple-400 mt-4 -ml-[5px] relative"></span>
         <div class="border-t-2 border-purple-300 mt-5 w-8"></div>
         <li
-          v-for="animal in node.animals"
+          v-for="animal in self.animals"
           :key="animal.id"
           class="text-sm text-gray-600 italic bg-purple-100 hover:bg-purple-200 border-2 border-purple-300 p-1 rounded-md mt-2 pr-4"
         >
@@ -64,13 +64,11 @@
         leave-from-class="opacity-100 max-h-[1000px]"
         leave-to-class="opacity-0 max-h-0"
       >
-        <ul v-show="isOpen && hasChildren" class="ml-6 mt-2 space-y-2 flex flex-col">
+        <ul v-show="isOpen && self.has_children" class="ml-6 mt-2 space-y-2 flex flex-col">
           <GroupTree
-            v-for="child in node.children"
+            v-for="child in children"
             :key="child.id"
             :node="child"
-            :open_nodes="open_nodes"
-            @add-line="addLineToParent"
             @reassign-parent="$emit('reassign-parent', $event)"
             @open-modal="(data) => openModal(data)"
             @delete-modal="(id) => openDeleteConfirmationModal(id)"
@@ -82,17 +80,85 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, inject } from 'vue';
 
 const props = defineProps({
   node: {
     type: Object,
     required: true
   },
-  open_nodes: Boolean
 });
 
-const emit = defineEmits(['add-line', 'reassign-parent', 'open-modal', 'delete-modal']);
+const emit = defineEmits(['reassign-parent', 'open-modal', 'delete-modal']);
+
+const updateStack = inject('updateStack');
+const shiftUpdate = inject('shiftUpdate');
+
+const isUpdating = ref(false);
+
+const self = ref({ ...props.node }); // shallow clone
+watch(() => props.node, (newData) => {
+  self.value = { ...newData };
+});
+const isProcessingQueue = ref(false);
+
+watch(() => updateStack.value.length, async () => {
+  if (isProcessingQueue.value || updateStack.value.length === 0) return;
+
+  const data = updateStack.value[0];
+  const isTargetMatch = self.value.id === data?.group_id;
+  if (!isTargetMatch) return;
+
+  isProcessingQueue.value = true;
+
+  const updatesToRun = data?.only ?? [1, 2];
+
+  for (const type of updatesToRun) {
+    if (type === 1) await refetchSelf();
+    else if (type === 2) await fetchChildren();
+  }
+
+  if (data?.forceOpen) {
+    isOpen.value = true;
+  } else if (children.value.length === 0) {
+    isOpen.value = false;
+  }
+
+  shiftUpdate();
+  isProcessingQueue.value = false;
+});
+
+
+const isFetchingData = ref(false);
+const refetchSelf = async () => {
+  try {
+    isFetchingData.value = true;
+    const id = self.value.id;
+    const response = await axios.get(`/api/groups/${id}`);
+    self.value = response.data.data;
+  } catch (e) {
+    alert('Error refetching self');
+  } finally {
+    isFetchingData.value = false;
+  }
+};
+
+const children = ref([]);
+const alreadyFetchedChildren = ref(false);
+const fetchChildren = async () => {
+  try {
+    isFetchingData.value = true;
+    const id = self.value.id;
+    const response = await axios.get(`/api/groups/${id}/children`);
+    children.value = response.data.data;
+    alreadyFetchedChildren.value = true
+  } catch (e) {
+    alert('Error fetching children');
+  } finally {
+    isFetchingData.value = false;
+  }
+};
+
 
 const draggedOver = ref(false);
 
@@ -100,8 +166,8 @@ function openModal(data) {
   emit('open-modal', data);
 }
 
-function openDeleteConfirmationModal(id) {
-  emit('delete-modal', id);
+function openDeleteConfirmationModal(data) {
+  emit('delete-modal', data);
 }
 
 function handleDragOver(event) {
@@ -113,38 +179,24 @@ function handleDragLeave() {
   draggedOver.value = false;
 }
 
-const isOpen = ref(props.open_nodes);
-const hasChildren = computed(() => props.node.children && props.node.children.length > 0);
+const isOpen = ref(false);
 
 // Toggle child visibility
-function toggle() {
-  if (hasChildren.value) isOpen.value = !isOpen.value;
+async function toggle() {
+  if (self.value.has_children) {
+    if (!isOpen.value) {
+      if (!alreadyFetchedChildren.value) {
+        await fetchChildren();
+      }
+    }
+
+    isOpen.value = !isOpen.value;
+  }
 }
-
-// Add connection line
-const addLineToParent = () => {
-  const parentPosition = document.getElementById(`node-${props.node.id}`).getBoundingClientRect();
-  const parentX = parentPosition.left + parentPosition.width / 2;
-  const parentY = parentPosition.top + parentPosition.height;
-
-  props.node.children.forEach((child) => {
-    const childPosition = document.getElementById(`node-${child.id}`).getBoundingClientRect();
-    const childX = childPosition.left + childPosition.width / 2;
-    const childY = childPosition.top;
-
-    emit('add-line', {
-      id: `${props.node.id}-${child.id}`,
-      x1: parentX,
-      y1: parentY,
-      x2: childX,
-      y2: childY
-    });
-  });
-};
 
 // Drag-and-drop handlers
 function onDragStart(event) {
-  event.dataTransfer.setData('application/json', JSON.stringify(props.node));
+  event.dataTransfer.setData('application/json', JSON.stringify(self.value));
 }
 
 function onDrop(event) {
@@ -153,12 +205,13 @@ function onDrop(event) {
   mouseUpMainCanvas();
   handleDragLeave();
   // Prevent dropping onto self
-  if (draggedData.id === props.node.id) return;
+  if (draggedData.id === self.value.id) return;
 
   // Emit parent reassignment event
   emit('reassign-parent', {
     childId: draggedData.id,
-    newParentId: props.node.id
+    newParentId: self.value.id,
+    oldParentId: draggedData.parent_group_id
   });
 }
 

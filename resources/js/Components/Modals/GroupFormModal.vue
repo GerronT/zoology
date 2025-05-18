@@ -37,7 +37,7 @@ export default {
     GroupBaseForm,
     BaseModal
   },
-  emits: ['close'],
+  emits: ['close', 'recordUpdate'],
   setup(props, {emit}) {
     
   const store = useStore();
@@ -62,7 +62,7 @@ export default {
           ...groupForm, parent_group_id: props?.data?.group?.id
         });
         alert('Child group added!');
-        location.reload();
+        emit('recordUpdate', {type: props?.data?.type, group_id: props?.data?.group?.id, forceOpen: true})
       } catch (e) {
         alert('Error creating child group');
       }
@@ -78,7 +78,7 @@ export default {
           ...groupForm
         });
         alert('Group saved!');
-        location.reload();
+        emit('recordUpdate', {type: props?.data?.type, group_id: props?.data?.group?.id, only: [1]})
       } catch (e) {
         alert('Error updating group');
       }
@@ -155,7 +155,7 @@ export default {
           });
         case 'add':
         default:
-          const yngRnkAncestor = group.youngest_ranked_ancestor;
+          const yngRnkAncestor = group?.youngest_ranked_ancestor;
 
           if (yngRnkAncestor) {
             const nextClassRankId = store.getters.getNextRankedId(RankTypes.CLASSIFICATION, yngRnkAncestor.classification_id);
@@ -204,7 +204,7 @@ export default {
         case 'add':
           
         default:
-          const yngRnkAncestor = group.youngest_ranked_ancestor;
+          const yngRnkAncestor = group?.youngest_ranked_ancestor;
 
           if (yngRnkAncestor?.classification_id == classificationId) {
             return props.levels.filter(l => {

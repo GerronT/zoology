@@ -34,7 +34,7 @@ class Group extends Model
 
     public function children()
     {
-        return $this->hasMany(Group::class, 'parent_group_id')->with('children', 'classification', 'level');
+        return $this->hasMany(Group::class, 'parent_group_id');
     }
 
     public function parent()

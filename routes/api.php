@@ -10,13 +10,14 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/groups/search', [GroupController::class, 'search']);
-Route::get('/groups/{group}/children', [GroupController::class, 'childgroups']);
+Route::get('/groups/{group}/children-only', [GroupController::class, 'childgroups']);
 Route::get('/groups/{group}/youngest-ranked-ancestor', [GroupController::class, 'youngestRankedAncestor']);
-Route::get('/group-tree', [GroupController::class, 'tree']);
+
+Route::get('/groups/tree', [GroupController::class, 'tree']);
+
+Route::get('/groups/{group}', [GroupController::class, 'self']);
+Route::get('/groups/{group}/children', [GroupController::class, 'children']);
 
 Route::post('/move-group', [GroupController::class, 'moveGroup']);
-
-
-
 Route::get('/ranks', [RankingController::class, 'index']);
 

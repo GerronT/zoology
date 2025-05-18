@@ -21,12 +21,14 @@ class GroupTreeResource extends JsonResource
         return [
             'id' => $this->id,
             'is_root' => $this->parent_group_id == null,
+            'has_children' => $this->children()->exists(),
             'name' => $this->name,
             'description' => $this->description,
             'classification_id' => $this->classification_id,
             'classification' => $this->classification->name ?? null,
             'level' => $this->level->name ?? null,
             'level_id' => $this->level_id,
+            'parent_group_id' => $this->parent_group_id,
             'animals' => $this->animals->map(function ($animal) {
                 return [
                     'id' => $animal->id,
@@ -41,7 +43,6 @@ class GroupTreeResource extends JsonResource
             'best_ranked_descendant' => $best_ranked_descendant,
             'secondary_class' => $secondary_class,
             'best_ranked_descendant_exclusive' => $best_ranked_descendant_exclusive,
-            'children' => GroupTreeResource::collection($this->children),
         ];
     }
 

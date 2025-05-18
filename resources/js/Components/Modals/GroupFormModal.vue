@@ -54,15 +54,18 @@ export default {
     };
     
     const groupForm = reactive({...defaultGroupForm});
+    const headerTitle = ref('');
+    const buttonTitle = ref('');
 
     const createChildGroup = async () => {
       isSaving.value = true;
       try {
+        const group_id = props?.data?.group?.id;
         await axios.post('/groups/create-child', {
-          ...groupForm, parent_group_id: props?.data?.group?.id
+          ...groupForm, parent_group_id: group_id
         });
         alert('Child group added!');
-        emit('recordUpdate', {type: props?.data?.type, group_id: props?.data?.group?.id, forceOpen: true})
+        emit('recordUpdate', {type: 'add', group_id: group_id, forceOpen: true})
       } catch (e) {
         alert('Error creating child group');
       }
@@ -73,21 +76,19 @@ export default {
     const updateGroup = async () => {
       isSaving.value = true;
       try {
-        const id = props?.data?.group.id
-        await axios.post(`/groups/${id}/update`, {
+        const group_id = props?.data?.group.id
+        await axios.post(`/groups/${group_id}/update`, {
           ...groupForm
         });
         alert('Group saved!');
-        emit('recordUpdate', {type: props?.data?.type, group_id: props?.data?.group?.id, only: [1]})
+        emit('recordUpdate', {type: 'edit', group_id: group_id, only: [1]})
       } catch (e) {
         alert('Error updating group');
       }
       isSaving.value = false;
       emitClose();
     };
-    
-    const headerTitle = ref('');
-    const buttonTitle = ref('');
+
     const groupHandler = ref(createChildGroup);
     const isSaving = ref(false);
 

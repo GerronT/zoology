@@ -53,7 +53,7 @@ export default {
     // Submit the group(s) form
     const submitGroups = async () => {
       try {
-        await axios.post('/groups', {
+        await axios.post(`/groups/mass-store`, {
           ...form
         });
         alert('Group(s) added!');

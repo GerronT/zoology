@@ -10,15 +10,19 @@
     <!-- Groups displayed Recursively -->
     <div class="absolute flex flex-col gap-4" :style="{ left: `${canvasPosition.x}px`, top: `${canvasPosition.y}px` }">
       <div class="mt-8 ml-8">
-        <GroupTree v-for="group in treeData" :key="group.id" :node="group" />
+        <GroupTree v-for="group in rootGroups.data" :key="group.id" :node="group" />
       </div>
     </div>
 
     <!-- Add Group Modal -->
-    <add-group-modal @recordUpdate="recordUpdate" :visible="showAddGroupModal" :classifications="classifications" :levels="levels" :data="groupToAddTo" @close="closeAddGroupModal"/>
+    <base-modal :visible="showAddGroupModal" @close="closeAddGroupModal">
+      <add-group-form @recordUpdate="recordUpdate" :classifications="classifications" :levels="levels" :parentGroup="groupToAddTo" :isModal="true" @close="closeAddGroupModal"/>
+    </base-modal>
 
     <!-- Edit Group Modal -->
-    <edit-group-modal @recordUpdate="recordUpdate" :visible="showEditGroupModal" :classifications="classifications" :levels="levels" :data="groupToEdit" @close="closeEditGroupModal"/>
+    <base-modal :visible="showEditGroupModal" @close="closeEditGroupModal">
+      <edit-group-form @recordUpdate="recordUpdate" :classifications="classifications" :levels="levels" :groupInEdit="groupToEdit" :isModal="true" @close="closeEditGroupModal"/>
+    </base-modal>
 
     <!-- Delete Confirmation Modal -->
     <confirmation-modal :visible="showDeleteConfirmationModal" @close="closeDeleteConfirmationModal" :inProgress="isDeleting">
@@ -49,42 +53,28 @@
   import axios from 'axios';
   import mitt from 'mitt';
   import GroupTree from '../../Components/Groups/GroupTree.vue';
-  import AddGroupModal from '../../Components/Modals/AddGroupModal.vue';
-  import EditGroupModal from '../../Components/Modals/EditGroupModal.vue';
+  import BaseModal from "../../Components/Modals/BaseModal.vue";
+  import AddGroupForm from './AddGroupForm.vue';
+  import EditGroupForm from './EditGroupForm.vue';
   import ConfirmationModal from '../../Components/Modals/ConfirmationModal.vue';
   
   export default {
     props: {
+      rootGroups: Object,
       classifications: Array,
-      levels: Array,
-      group_root_id: Number,
+      levels: Array
     },
     components: {
       GroupTree,
-      AddGroupModal,
-      EditGroupModal,
+      BaseModal,
+      AddGroupForm,
+      EditGroupForm,
       ConfirmationModal
     },
     setup(props) {
-      const treeData = ref([]);
-      const loading = ref(true); // TODO - show loading circle on template
-
       onMounted(async () => {
-        loading.value = true;
-        try {
-          const response = await axios.get('/api/groups/tree', {
-            params: {
-              group_root_id: props.group_root_id
-            },
-          });
-          treeData.value = response.data.data;
-          await updateCanvasSize()
-          window.addEventListener('resize', detectZoomChange);
-        } catch (err) {
-          console.error('Error loading tree:', err);
-        } finally {
-          loading.value = false;
-        }
+        await updateCanvasSize()
+        window.addEventListener('resize', detectZoomChange);
       });
 
       // Update canvas size - should be triggered on mounted
@@ -152,15 +142,35 @@
       const stopDragCanvas = (event) => {
         isDragging.value = false;
       };
+      provide('stopDragCanvas', stopDragCanvas);
 
-      // Handles triggering group updates
+      // Handles triggering group/node updates
       const emitter = mitt();
 
       provide('emitter', emitter);
 
+      // Queue updates so they can be performed sequentially
+      const updateQueue = [];
+      let isProcessingQueue = false;
+
       const recordUpdate = (data) => {
-        emitter.emit(`update:${data.group_id}`, data);
-      }
+        updateQueue.push(data);
+        processQueue();
+      };
+
+      const processQueue = async () => {
+        if (isProcessingQueue || updateQueue.length === 0) return;
+
+        isProcessingQueue = true;
+
+        const next = updateQueue.shift();
+        await new Promise((resolve) => {
+          emitter.emit(`update:${next.group_id}`, { ...next, done: resolve });
+        });
+
+        isProcessingQueue = false;
+        processQueue();
+      };
 
       // Add Group Modal
       const showAddGroupModal = ref(false);
@@ -233,12 +243,21 @@
 
       const moveGroup = async ({ childId, newParentId, oldParentId }) => {
         try {
-          await axios.post('/api/move-group', {
+          const data = await axios.post(`/groups/move`, {
             child_id: childId,
             new_parent_id: newParentId
           });
-          recordUpdate({type: 'move', group_id: oldParentId});
-          recordUpdate({type: 'move', group_id: newParentId, forceOpen: true});
+
+          const nodesToOpen = data?.data?.nodesToOpen;
+          if (nodesToOpen) {
+            recordUpdate({type: 'move', group_id: oldParentId, forceOpen: true});
+            for (const id of nodesToOpen) {
+              recordUpdate({type: 'move', group_id: id, forceOpen: true});
+            }
+          } else {
+            recordUpdate({type: 'move', group_id: oldParentId});
+            recordUpdate({type: 'move', group_id: newParentId, forceOpen: true});
+          }
         } catch (err) {
           if (err.response && err.response.data) {
             console.error('Backend error:', err.response.data);
@@ -252,6 +271,16 @@
 
       provide('moveGroup', moveGroup);
 
+      const openNodes = ref(new Set());
+      const updateOpenNodes = (group_id, isOpen) => {
+        if (isOpen) {
+          openNodes.value.add(group_id);
+        } else {
+          openNodes.value.delete(group_id);
+        }
+      }
+      provide('updateOpenNodes', updateOpenNodes);
+
       return {
         canvasHeight,
         canvasWidth,
@@ -264,7 +293,6 @@
         gridLinesX,
         gridLinesY,
 
-        treeData,
         recordUpdate,
 
         groupToAddTo,

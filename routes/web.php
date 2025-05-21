@@ -15,18 +15,34 @@ Route::get('/home', function () {
     ]);
 });
 
-Route::get('/animals/create', [AnimalController::class, 'create']);
-Route::post('/animals', [AnimalController::class, 'store']);
+Route::prefix('animals')->group(function () {
+    Route::get('/create', [AnimalController::class, 'create']);
+    Route::post('/', [AnimalController::class, 'store']);
+});
 
+Route::prefix('groups')->as('groups.')->group(function () {
+     // ---- Main Group Tree View ----
+    Route::get('/tree/{group_root_id?}', [GroupController::class, 'groupTree'])->name('tree');
 
+    // ---- Custom and Nested Routes ----
+    Route::get('/{group}/children', [GroupController::class, 'children'])->name('children');
+    Route::post('/move', [GroupController::class, 'move'])->name('move');
 
-Route::get('/groups/create', [GroupController::class, 'create']);
-Route::post('/groups', [GroupController::class, 'store']);
-Route::get('/groups/tree/{group_root_id?}', [GroupController::class, 'indexTree']);
+    // ---- Standard RESTful API Routes ----
+    Route::get('/', [GroupController::class, 'index'])->name('index');            // GET /groups
+    Route::post('/', [GroupController::class, 'store'])->name('store');           // POST /groups
+    Route::get('/{group}', [GroupController::class, 'show'])->name('show');       // GET /groups/{group}
+    Route::post('/{group}', [GroupController::class, 'update'])->name('update');  // POST /groups/{group}
+    Route::delete('/{group}', [GroupController::class, 'destroy'])->name('destroy'); // DELETE /groups/{group}
 
-Route::post('/groups/create-child', [GroupController::class, 'createChild']);
-Route::post('/groups/{group}/update', [GroupController::class, 'update']);
-Route::delete('/groups/{group}', [GroupController::class, 'destroy']);
+    // ---- Form/Editor Views ----
+    Route::get('/create/{group}', [GroupController::class, 'create'])->name('create');
+    Route::get('/edit/{group}', [GroupController::class, 'edit'])->name('edit');
+
+    // ---- Mass Create View/Store ----
+    Route::get('/mass-create', [GroupController::class, 'massCreate'])->name('massCreate');
+    Route::post('/mass-store', [GroupController::class, 'massStore'])->name('massStore');
+});
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [

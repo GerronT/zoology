@@ -39,7 +39,7 @@ export default {
     // Submit form
     const submitAnimal = async () => {
       try {
-        await axios.post('/animals', {
+        await axios.post(`/animals`, {
           ...animalForm
         });
         alert('Animal added!');

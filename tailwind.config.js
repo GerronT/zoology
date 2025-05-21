@@ -60,17 +60,16 @@ export default {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
             colors: {
-                    // Add your custom background colors here
-                    'domain': '#FFD1DC',
-                    'kingdom': '#AEC6CF',
-                    'phylum': '#B0EACD',
-                    'class': '#D7BDE2',
-                    'order': '#FFFACD',
-                    'family': '#FFD8B1',
-                    'genus': '#B2DFDB',
-                    'species': '#E6E6FA',
-                    'none': '#C1F0DC',
-            },
+                'domain':  '#FBCFE8', // Light Pink
+                'kingdom': '#BFDBFE', // Soft Blue
+                'phylum':  '#C4B5FD', // Light Purple (distinct from kingdom)
+                'class':   '#86EFAC', // Soft Green (not too close to species)
+                'order':   '#FDE68A', // Pale Yellow
+                'family':  '#FDBA74', // Orange-300 (anchor color)
+                'genus':   '#FCA5A5', // Light Coral Red (contrast with pink & orange)
+                'species': '#99F6E4', // Aqua Mint (lighter, cooler than class)
+                'none':    '#E5E7EB'  // Neutral Gray
+            }
         },
     },
 

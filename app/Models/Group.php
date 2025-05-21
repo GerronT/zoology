@@ -27,11 +27,6 @@ class Group extends Model
 
     protected $hidden = ['deleted_at'];
 
-    public function childrenOnly()
-    {
-        return $this->hasMany(Group::class, 'parent_group_id');
-    }
-
     public function children()
     {
         return $this->hasMany(Group::class, 'parent_group_id');
@@ -91,41 +86,42 @@ class Group extends Model
         return isset($levelRanks[$this->level_id]) ? $levelRanks[$this->level_id] : null;
     }
 
-    private function isRanked()
+    public function isRanked()
     {
         return $this->classification_id && $this->level_id;
     }
 
-    public function getYoungestRankedAncestor($includeSelf = true)
+    public function getYoungestRankedAncestor()
     {
-        if (!$includeSelf) {
-            return $this->parent ? $this->parent->getYoungestRankedAncestor() : null;
+        $ancestor = $this->parent;
+
+        while ($ancestor) {
+            if ($ancestor->isRanked()) {
+                return $ancestor;
+            }
+
+            $ancestor = $ancestor->parent;
         }
 
-        if ($this->isRanked()) {
-            return $this;
-        }
-
-        return $this->parent ? $this->parent->getYoungestRankedAncestor() : null;
+        return null;
     }
 
-
-    public function getBestRankedDescendant($includeSelf = true)
+    public function getBestRankedDescendant()
     {
-        if ($includeSelf && $this->isRanked()) {
-            return $this;
-        }
-
-        $bestDescendant = null;
+        $best = null;
 
         foreach ($this->children as $child) {
-            $candidate = $child->getBestRankedDescendant();
+            if ($child->isRanked()) {
+                $candidate = $child;
+            } else {
+                $candidate = $child->getBestRankedDescendant();
+            }
 
-            if ($candidate && ($bestDescendant === null || $candidate->getComboRank() < $bestDescendant->getComboRank())) {
-                $bestDescendant = $candidate;
+            if ($candidate && ($best === null || $candidate->getComboRank() < $best->getComboRank())) {
+                $best = $candidate;
             }
         }
 
-        return $bestDescendant;
+        return $best;
     }
 }

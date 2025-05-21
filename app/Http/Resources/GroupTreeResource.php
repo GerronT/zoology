@@ -9,14 +9,8 @@ class GroupTreeResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-
         $youngest_ranked_ancestor = $this->getYoungestRankedAncestor();
-        $primary_class = $this->fetchGroupClassName($youngest_ranked_ancestor);
-        $youngest_ranked_ancestor_exclusive = $this->getYoungestRankedAncestor(false);
-
         $best_ranked_descendant = $this->getBestRankedDescendant();
-        $secondary_class = $this->fetchGroupClassName($best_ranked_descendant);
-        $best_ranked_descendant_exclusive = $this->getBestRankedDescendant(false);
 
         return [
             'id' => $this->id,
@@ -26,8 +20,8 @@ class GroupTreeResource extends JsonResource
             'description' => $this->description,
             'classification_id' => $this->classification_id,
             'classification' => $this->classification->name ?? null,
-            'level' => $this->level->name ?? null,
             'level_id' => $this->level_id,
+            'level' => $this->level->name ?? null,
             'parent_group_id' => $this->parent_group_id,
             'animals' => $this->animals->map(function ($animal) {
                 return [
@@ -37,22 +31,12 @@ class GroupTreeResource extends JsonResource
                     'description' => $animal->description,
                 ];
             }),
-            'youngest_ranked_ancestor' => $youngest_ranked_ancestor,
-            'primary_class' => $primary_class,
-            'youngest_ranked_ancestor_exclusive' => $youngest_ranked_ancestor_exclusive,
-            'best_ranked_descendant' => $best_ranked_descendant,
-            'secondary_class' => $secondary_class,
-            'best_ranked_descendant_exclusive' => $best_ranked_descendant_exclusive,
+            'isRanked' => $this->isRanked(),
+            'yra_classification_id' => $youngest_ranked_ancestor?->classification_id,
+            'brd_classification_id' => $best_ranked_descendant?->classification_id,
+            'yra_level_id' => $youngest_ranked_ancestor?->level_id,
+            'brd_level_id' => $best_ranked_descendant?->level_id,
+            'primary_class' => strtolower($this->classification->name ?? 'none'),
         ];
-    }
-
-    private function fetchGroupClassName($group) {
-        if ($group) {
-            $group->load('classification');
-
-            return strtolower($group->classification->name);
-        }
-
-        return 'none';
     }
 }

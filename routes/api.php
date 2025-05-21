@@ -9,15 +9,13 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::get('/groups/search', [GroupController::class, 'search']);
-Route::get('/groups/{group}/children-only', [GroupController::class, 'childgroups']);
-Route::get('/groups/{group}/youngest-ranked-ancestor', [GroupController::class, 'youngestRankedAncestor']);
+// For mass-group create group dropdowns/filters
+Route::prefix('groups')->group(function () {
+    Route::get('/search', [GroupController::class, 'search']);
+    Route::get('/{group}/children', [GroupController::class, 'childrenRaw']);
+    Route::get('/{group}/youngest-ranked-ancestor', [GroupController::class, 'youngestRankedAncestor']);
+});
 
-Route::get('/groups/tree', [GroupController::class, 'tree']);
-
-Route::get('/groups/{group}', [GroupController::class, 'self']);
-Route::get('/groups/{group}/children', [GroupController::class, 'children']);
-
-Route::post('/move-group', [GroupController::class, 'moveGroup']);
+// For Vuex store
 Route::get('/ranks', [RankingController::class, 'index']);
 

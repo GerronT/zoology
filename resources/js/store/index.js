@@ -21,7 +21,7 @@ export default createStore({
   },
   actions: {
     fetchRanks({ commit }) {
-      axios.get('/api/ranks').then((response) => {
+      axios.get(`/api/ranks`).then((response) => {
         commit('setClassificationRanks', response.data.classificationRanks);
         commit('setLevelRanks', response.data.levelRanks);
       });

@@ -10,140 +10,254 @@ use App\Http\Requests\StoreGroupRequest;
 use App\Http\Requests\UpdateGroupRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Database\Eloquent\Collection;
 
 class GroupController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
         //
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(Group $group)
     {
-        return Inertia::render('Groups/create', [
-            'classifications' => Classification::all(),
-            'levels' => Level::all(),
+        return Inertia::render('Groups/AddGroupForm', [
+            ...$this->sharedGroupData(),
+            'parentGroup' => new GroupTreeResource($group)
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreGroupRequest $request)
+    public function store(Request $request)
     {
-        $request->validate([
-            'groupings' => ['array', 'min:1'],
-            'groupings.*' => ['array']
-        ]);
+        $group = Group::create($request->only([
+            'name',
+            'classification_id',
+            'level_id',
+            'description',
+            'parent_group_id'
+        ]));
 
-        // validate group fields data (id or data (clade, then level and class can be null))
-        // check that first ite
-
-        $group_parent_id = null;
-
-        foreach ($request->groupings as $group) {
-            $insertedOrFetchedGroup = null;
-
-            if (!$group['useNewGroup'] && $group['id']) {
-                $insertedOrFetchedGroup = Group::find($group['id']);
-            } else {
-                $insertedOrFetchedGroup = Group::firstOrCreate(
-                    ['name' => $group['name'], 'classification_id' => $group['classification_id'], 'level_id' => $group['level_id']],
-                    ['description' => $group['description']
-                ]);
-            }
-
-            if ($group_parent_id /*&& $insertedOrFetchedGroup->wasRecentlyCreated*/) {
-                $insertedOrFetchedGroup->parent_group_id = $group_parent_id;
-                $insertedOrFetchedGroup->save();
-            }
-
-            $group_parent_id = $insertedOrFetchedGroup->id;
-        }
+        return response()->json($group, 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Group $group)
     {
-        //
+        return new GroupTreeResource(
+            $group->load(['classification', 'level', 'animals'])
+        );
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(Group $group)
     {
-        //
+        return Inertia::render('Groups/EditGroupForm', [
+            ...$this->sharedGroupData(),
+            'data' => new GroupTreeResource($group)
+        ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UpdateGroupRequest $request, Group $group)
     {
-        $group->name = $request->input('name');
-        $group->classification_id = $request->input('classification_id');
-        $group->level_id = $request->input('level_id');
-        $group->description = $request->input('description');
-        $group->save();
-        
+        $group->update($request->only([
+            'name',
+            'classification_id',
+            'level_id',
+            'description'
+        ]));
+
         return response()->json($group);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Request $request, Group $group)
     {
-        $exterminate = $request->input('exterminate');
-
-        if ($exterminate) {
+        if ($request->boolean('exterminate')) {
             $this->deleteAllGroupDescendants($group);
         } else {
-            $group->load('children');
 
-            foreach ($group->children as $child) {
-                $child->parent_group_id = $group->parent_group_id;
-                $child->save();
+            $previousParent = $group->parent;
+
+            if ($previousParent->isRanked()) {
+                $previousParentValidClassification =  $previousParent->getClassificationRank();
+            } else {
+                $previousParentYoungestRankedAncestor = $previousParent->getYoungestRankedAncestor();
+                $previousParentValidClassification = $previousParentYoungestRankedAncestor?->getClassificationRank();
             }
-        }
+            
+            foreach ($group->children as $grandChild) {
+                if ($grandChild->isRanked()) {
+                    $grandChildValidClassification =  $grandChild->getClassificationRank();
+                } else {
+                    $grandChildBestRankedDescendant = $grandChild->getBestRankedDescendant();
+                    $grandChildValidClassification = $grandChildBestRankedDescendant?->getClassificationRank();
+                }
 
-        $group->delete();
+                if ($grandChildValidClassification && $previousParentValidClassification) {
+                    if (abs($grandChildValidClassification - $previousParentValidClassification) >= 2) {
+                        return response()->json(['message' => 'Rank classification gap is too large for the previous parent to adopt some if not all of reincarnating group\'s current children'], 422);
+                    }
+                }
+            }
+
+            $group->children()->update(['parent_group_id' => $group->parent_group_id]);
+            $group->delete();
+        }
 
         return response()->json(true);
     }
 
-    private function deleteAllGroupDescendants(Group $group)
+    // --- Tree + Hierarchy Related ---
+
+    public function groupTree(?int $group_root_id = null)
     {
-        $group->load('children');
+        $groups = Group::query()
+            ->when($group_root_id, fn($q) => $q->where('id', $group_root_id), fn($q) => $q->whereNull('parent_group_id'))
+            ->with(['classification', 'level', 'animals'])
+            ->get();
 
-        foreach ($group->children as $child) {
-            $this->deleteAllGroupDescendants($child);
-        }
-
-        $group->delete();
+        return Inertia::render('Groups/tree', [
+            ...$this->sharedGroupData(),
+            'rootGroups' => GroupTreeResource::collection($groups)
+        ]);
     }
 
-    public function createChild(Request $request)
+    public function children(Group $group)
     {
-        $group = Group::create([
-            'name' => $request->input('name'),
-            'classification_id' => $request->input('classification_id'),
-            'level_id' => $request->input('level_id'),
-            'description' => $request->input('description'),
-            'parent_group_id' => $request->input('parent_group_id'),
+        return GroupTreeResource::collection(
+            $group->children()->with(['classification', 'level', 'animals'])->get()
+        );
+    }
+
+    public function move(Request $request)
+    {
+        $validated = $request->validate([
+            'child_id' => 'required|integer|exists:groups,id',
+            'new_parent_id' => 'required|integer|exists:groups,id',
         ]);
 
-        return response()->json($group, 201);
+        $child = Group::findOrFail($validated['child_id']);
+        $newParent = Group::findOrFail($validated['new_parent_id']);
+
+        if ($child->id === $newParent->id) {
+            return response()->json(['message' => 'A group cannot be its own parent.'], 422);
+        }
+
+        if ($child->parent_group_id === $newParent->id) {
+            return response()->json(['message' => 'Group already assigned to that parent'], 422);
+        }
+
+        $isDescendant = $this->isDescendant($child->id, $newParent);
+
+        if ($child->isRanked()) {
+            $childValidClassificationRank = $child->getClassificationRank();
+            $childValidComboRank = $child->getComboRank();
+            $reincarnatingUnrankedGroup = false;
+        } else {
+            $childBestRankDescendant = $child->getBestRankedDescendant();
+            $childValidClassificationRank = $childBestRankDescendant?->getClassificationRank();
+            $childValidComboRank = $childBestRankDescendant?->getComboRank();
+            $reincarnatingUnrankedGroup = !!$isDescendant;
+        }
+
+        if ($newParent->isRanked()) {
+            $newParentValidClassificationRank = $newParent->getClassificationRank();
+            $newParentValidComboRank = $newParent->getComboRank();
+        } else {
+            $newParentYoungestRankedAncestor = $newParent->getYoungestRankedAncestor();
+            if ($newParentYoungestRankedAncestor?->id === $child->id) {
+                $newParentYoungestRankedAncestor = $child->getYoungestRankedAncestor();
+            }
+            $newParentValidClassificationRank = $newParentYoungestRankedAncestor?->getClassificationRank();
+            $newParentValidComboRank = $newParentYoungestRankedAncestor?->getComboRank();
+        }
+
+        if (!$reincarnatingUnrankedGroup) {
+            if ($childValidClassificationRank && $newParentValidClassificationRank) {
+                if (abs($childValidClassificationRank - $newParentValidClassificationRank) >= 2) {
+                    return response()->json(['message' => 'Rank classification gap is too large between group and new parent.'], 422);
+                }
+            }
+
+            if ($childValidComboRank && $newParentValidComboRank) {
+                if ($childValidComboRank <= $newParentValidComboRank) {
+                    return response()->json(['message' => 'A better-ranked group cannot be assigned below a worse-ranked one.'], 422);
+                }
+            }
+        }
+
+        if ($isDescendant) {
+            $child->load('parent', 'children');
+            
+            $previousParent = $child->parent;
+
+            if ($previousParent->isRanked()) {
+                $previousParentValidClassification =  $previousParent->getClassificationRank();
+            } else {
+                $previousParentYoungestRankedAncestor = $previousParent->getYoungestRankedAncestor();
+                $previousParentValidClassification = $previousParentYoungestRankedAncestor?->getClassificationRank();
+            }
+            
+            foreach ($child->children as $grandChild) {
+                if ($grandChild->isRanked()) {
+                    $grandChildValidClassification =  $grandChild->getClassificationRank();
+                } else {
+                    $grandChildBestRankedDescendant = $grandChild->getBestRankedDescendant();
+                    $grandChildValidClassification = $grandChildBestRankedDescendant?->getClassificationRank();
+                }
+
+                if ($grandChildValidClassification && $previousParentValidClassification) {
+                    if (abs($grandChildValidClassification - $previousParentValidClassification) >= 2) {
+                        return response()->json(['message' => 'Rank classification gap is too large for the previous parent to adopt some if not all of reincarnating group\'s current children'], 422);
+                    }
+                }
+            }
+
+            $child->children()->update(['parent_group_id' => $child->parent_group_id]);
+        }
+
+        $child->parent_group_id = $newParent->id;
+        $child->save();
+
+        return response()->json([
+            'message' => 'Parent updated successfully.',
+            'nodesToOpen' => $isDescendant ? array_reverse($isDescendant) : false,
+        ]);
+    }
+
+    // --- Mass Group Create ---
+
+    public function massCreate()
+    {
+        return Inertia::render('Groups/create', $this->sharedGroupData());
+    }
+
+    public function massStore(StoreGroupRequest $request)
+    {
+        $request->validate([
+            'groupings' => ['required', 'array', 'min:1'],
+            'groupings.*' => ['array']
+        ]);
+
+        $parentId = null;
+
+        foreach ($request->groupings as $groupData) {
+            $group = !$groupData['useNewGroup'] && $groupData['id']
+                ? Group::find($groupData['id'])
+                : Group::firstOrCreate(
+                    [
+                        'name' => $groupData['name'],
+                        'classification_id' => $groupData['classification_id'],
+                        'level_id' => $groupData['level_id'],
+                    ],
+                    ['description' => $groupData['description']]
+                );
+
+            if ($parentId) {
+                $group->parent_group_id = $parentId;
+                $group->save();
+            }
+
+            $parentId = $group->id;
+        }
+
+        return response()->json(['message' => 'Groups created successfully.'], 201);
     }
 
     public function search(Request $request)
@@ -155,120 +269,54 @@ class GroupController extends Controller
         }
 
         $groups = Group::where('name', 'like', '%' . $query . '%')
-            ->limit(10) // optional: limit results
+            ->limit(10)
             ->get();
 
         return response()->json($groups);
     }
 
-    public function childgroups(Group $group)
-    {
-        return response()->json($group->childrenOnly);
-    }
-
-     public function indexTree(Request $request, ?int $group_root_id = null)
-     {
-        return Inertia::render('Groups/tree', [
-            'classifications' => Classification::all(),
-            'levels' => Level::all(),
-            'group_root_id' => $group_root_id,
-        ]);
-     }
-
-    public function tree(Request $request)
-    {
-        $groupRootId = $request->query('group_root_id');
-
-        $query = Group::query();
-
-        if ($groupRootId) {
-            $query->where('id', $groupRootId);
-        } else {
-            $query->whereNull('parent_group_id');
-        }
-
-        $groups = $query->with(['classification', 'level', 'animals'])->get();
-
-        return GroupTreeResource::collection($groups);
-    }
-
-    public function children(Group $group)
-    {
-        $children = $group->children()
-            ->with(['classification', 'level', 'animals'])
-            ->get();
-
-        return GroupTreeResource::collection($children);
-    }
-
-    public function self(Group $group)
-    {
-        $group->load(['classification', 'level', 'animals']);
-
-        return new GroupTreeResource($group);
-    }
-
     public function youngestRankedAncestor(Group $group)
     {
-        return $group?->parent->getYoungestRankedAncestor();
+        return $group->getYoungestRankedAncestor();
     }
 
-    public function moveGroup(Request $request)
+    public function childrenRaw(Group $group)
     {
-        $validated = $request->validate([
-            'child_id' => 'required|integer|exists:groups,id',
-            'new_parent_id' => 'required|integer|exists:groups,id',
-        ]);
-
-        $child = Group::findOrFail($validated['child_id']);
-        $newParent = Group::findOrFail($validated['new_parent_id']);
-
-        // Prevent assigning to self
-        if ($child->id === $newParent->id) {
-            return response()->json(['message' => 'A group cannot be its own parent.'], 422);
-        }
-
-        // Prevent assigning to current parent
-        if ($child->parent_group_id === $newParent->id) {
-            return response()->json(['message' => 'Group already assigned to that parent'], 422);
-        }
-
-        $childSelfOrBestRankedDescendant = $child->getBestRankedDescendant();
-        $newParentSelfOrYoungestRankedAncestor = $newParent->getYoungestRankedAncestor();
-
-        if ($childSelfOrBestRankedDescendant && $newParentSelfOrYoungestRankedAncestor) {
-            if (abs($childSelfOrBestRankedDescendant->getClassificationRank() - $newParentSelfOrYoungestRankedAncestor->getClassificationRank()) >= 2) {
-                return response()->json(['message' => 'A group (or its best ranked descendant if unranked) cannot skip a classification between itself and its to be assigned next ranked predecessor'], 422);
-            }
-
-            if ($childSelfOrBestRankedDescendant->getComboRank() <= $newParentSelfOrYoungestRankedAncestor->getComboRank()) {
-                return response()->json(['message' => 'A group (or its best ranked descendant if unranked) cannot be better ranked than its to be assigned next ranked predecessor'], 422);
-            }
-        }
-
-        // Prevent circular parenting (check if new parent is a descendant of the child)
-        if ($this->isDescendant($child->id, $newParent)) {
-            // Move all direct children of the child group to its previous parent
-            $child->children()->update(['parent_group_id' => $child->parent_group_id]);
-        }
-
-        $child->parent_group_id = $newParent->id;
-        $child->save();
-
-        return response()->json(['message' => 'Parent updated successfully.']);
+        return response()->json($group->children);
     }
 
-    // Helper method to detect circular parenting
-    private function isDescendant($childId, $potentialParent)
+    // --- Utilities / Helpers ---
+    private function deleteAllGroupDescendants(Group $group)
+    {
+        foreach ($group->children as $child) {
+            $this->deleteAllGroupDescendants($child);
+        }
+
+        $group->delete();
+    }
+
+    private function isDescendant($childId, Group $potentialParent)
     {
         $parent = $potentialParent;
+        $nodesToOpen = [];
+
         while ($parent) {
+            $nodesToOpen[] = $parent->id;
             if ($parent->id == $childId) {
-                return true;
+                array_pop($nodesToOpen);
+                return $nodesToOpen;
             }
-            $parent = $parent->parent; // Assuming you have a relationship defined like: parent() { return $this->belongsTo(Group::class, 'parent_group_id'); }
+            $parent = $parent->parent;
         }
 
         return false;
+    }
+
+    private function sharedGroupData(): array
+    {
+        return [
+            'classifications' => Classification::all(),
+            'levels' => Level::all(),
+        ];
     }
 }

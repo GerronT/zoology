@@ -6,6 +6,8 @@ import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import store from './store'; // Import the Vuex store
+import Toast from 'vue-toastification'
+import 'vue-toastification/dist/index.css'
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -16,7 +18,11 @@ createInertiaApp({
         const vueApp = createApp({ render: () => h(App, props) })
             .use(plugin)
             .use(ZiggyVue)
-            .use(store);
+            .use(store)
+            .use(Toast, {
+                position: 'top-right',
+                timeout: 3000,
+            })
 
         return store.dispatch('fetchRanks').then(() => {
             vueApp.mount(el);

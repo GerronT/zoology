@@ -136,11 +136,11 @@ class GroupController extends Controller
         $newParent = Group::findOrFail($validated['new_parent_id']);
 
         if ($child->id === $newParent->id) {
-            return response()->json(['message' => 'A group cannot be its own parent.'], 422);
+            return response()->json(['message' => 'A group cannot be assigned as its own parent'], 422);
         }
 
         if ($child->parent_group_id === $newParent->id) {
-            return response()->json(['message' => 'Group already assigned to that parent'], 422);
+            return response()->json(['message' => 'This group is already assigned to the selected parent.'], 422);
         }
 
         $isDescendant = $this->isDescendant($child->id, $newParent);
@@ -169,15 +169,15 @@ class GroupController extends Controller
         }
 
         if (!$reincarnatingUnrankedGroup) {
-            if ($childValidClassificationRank && $newParentValidClassificationRank) {
-                if (abs($childValidClassificationRank - $newParentValidClassificationRank) >= 2) {
-                    return response()->json(['message' => 'Rank classification gap is too large between group and new parent.'], 422);
+            if ($childValidComboRank && $newParentValidComboRank) {
+                if ($childValidComboRank <= $newParentValidComboRank) {
+                    return response()->json(['message' => 'Cannot move a higher-ranked group under an equal or lower-ranked one'], 422);
                 }
             }
 
-            if ($childValidComboRank && $newParentValidComboRank) {
-                if ($childValidComboRank <= $newParentValidComboRank) {
-                    return response()->json(['message' => 'A better-ranked group cannot be assigned below a worse-ranked one.'], 422);
+            if ($childValidClassificationRank && $newParentValidClassificationRank) {
+                if (abs($childValidClassificationRank - $newParentValidClassificationRank) >= 2) {
+                    return response()->json(['message' => 'The classification rank difference between the group and its new parent is too large (maximum allowed is 1 level)'], 422);
                 }
             }
         }
@@ -204,7 +204,7 @@ class GroupController extends Controller
 
                 if ($grandChildValidClassification && $previousParentValidClassification) {
                     if (abs($grandChildValidClassification - $previousParentValidClassification) >= 2) {
-                        return response()->json(['message' => 'Rank classification gap is too large for the previous parent to adopt some if not all of reincarnating group\'s current children'], 422);
+                        return response()->json(['message' => 'Reincarnation failed: one or more of its children are too far apart in rank to be reassigned to the current parent.'], 422);
                     }
                 }
             }
@@ -278,6 +278,11 @@ class GroupController extends Controller
     public function youngestRankedAncestor(Group $group)
     {
         return $group->getYoungestRankedAncestor();
+    }
+
+    public function bestRankedDescendant(Group $group)
+    {
+        return $group->getBestRankedDescendant();
     }
 
     public function childrenRaw(Group $group)

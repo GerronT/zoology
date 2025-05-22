@@ -19,6 +19,9 @@ import { reactive, computed } from 'vue';
 import axios from 'axios';
 import 'vue3-select/dist/vue3-select.css';
 import GroupForm from "../../Components/Groups/GroupForm.vue";
+import { useToast } from 'vue-toastification';
+
+const toast = useToast();
 
 export default {
   props: {
@@ -56,10 +59,10 @@ export default {
         await axios.post(`/groups/mass-store`, {
           ...form
         });
-        alert('Group(s) added!');
-        location.reload();
+        toast.success('Group(s) successfully added!');
+        form.groupings = [];
       } catch (e) {
-        alert('Error creating group');
+        toast.error('An issue has occurred trying to create group(s)');
       }
     };
 

@@ -14,6 +14,9 @@
 import { reactive, computed } from 'vue';
 import axios from 'axios';
 import AnimalForm from "./Animals/AnimalForm.vue";
+import { useToast } from 'vue-toastification';
+
+const toast = useToast();
 
 export default {
   props: {
@@ -42,10 +45,12 @@ export default {
         await axios.post(`/animals`, {
           ...animalForm
         });
-        alert('Animal added!');
-        location.reload();
+        toast.success('Animal successfully added!');
+        animalForm.name = '';
+        animalForm.alt_name = '';
+        animalForm.description = '';
       } catch (e) {
-        alert('Error creating animal');
+        toast.error('An issue has occurred trying to to create animal');
       }
     };
 

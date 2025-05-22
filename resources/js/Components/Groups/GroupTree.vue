@@ -42,6 +42,9 @@
 
 <script>
   import { ref, watch, inject, onMounted, onBeforeUnmount } from 'vue';
+  import { useToast } from 'vue-toastification';
+
+  const toast = useToast();
 
   export default {
     props: {
@@ -110,7 +113,7 @@
           const response = await axios.get(`/groups/${id}`);
           self.value = response.data.data;
         } catch (e) {
-          alert('Error refetching self');
+          toast.error('An issue has occured trying to refresh group state');
         } finally {
           isFetchingData.value = false;
         }
@@ -127,7 +130,7 @@
           children.value = response.data.data;
           alreadyFetchedChildren.value = true
         } catch (e) {
-          alert('Error fetching children');
+          toast.error('An issue has occured trying to fetch group\'s children');
         } finally {
           isFetchingData.value = false;
         }

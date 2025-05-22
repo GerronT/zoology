@@ -9,9 +9,6 @@ class GroupTreeResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $youngest_ranked_ancestor = $this->getYoungestRankedAncestor();
-        $best_ranked_descendant = $this->getBestRankedDescendant();
-
         return [
             'id' => $this->id,
             'is_root' => $this->parent_group_id == null,
@@ -32,10 +29,6 @@ class GroupTreeResource extends JsonResource
                 ];
             }),
             'isRanked' => $this->isRanked(),
-            'yra_classification_id' => $youngest_ranked_ancestor?->classification_id,
-            'brd_classification_id' => $best_ranked_descendant?->classification_id,
-            'yra_level_id' => $youngest_ranked_ancestor?->level_id,
-            'brd_level_id' => $best_ranked_descendant?->level_id,
             'primary_class' => strtolower($this->classification->name ?? 'none'),
         ];
     }

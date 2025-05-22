@@ -7,7 +7,7 @@
         <!-- Clade Toggle Switch -->
         <div class="flex items-center gap-2 mb-4 flex-row-reverse">
         <label class="inline-flex relative items-center cursor-pointer">
-            <input type="checkbox" v-model="group.is_clade" @change="(e) => cladeGroupToggle(e.target.checked)" class="sr-only peer" :disabled="!isGroupEditable()">
+            <input type="checkbox" v-model="group.is_clade" @change="(e) => cladeGroupToggle(e.target.checked)" class="sr-only peer" :disabled="!isGroupEditable() || filteredClassifications().length == 0">
             <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-500 rounded-full peer peer-checked:bg-green-500 transition-all duration-300"></div>
             <div class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-all duration-300 transform peer-checked:peer-checked:translate-x-[130%]"></div>
         </label>

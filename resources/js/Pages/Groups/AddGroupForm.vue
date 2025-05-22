@@ -22,6 +22,9 @@ import axios from 'axios';
 import GroupBaseForm from "../../Components/Groups/GroupBaseForm.vue";
 import { RankTypes } from '@/constants/rankTypes';
 import { useStore } from 'vuex';
+import { useToast } from 'vue-toastification';
+
+const toast = useToast();
 
 export default {
   props: {
@@ -56,6 +59,7 @@ export default {
 
     onMounted(() => {
       Object.assign(groupForm, defaultGroupForm);
+      fetchYoungestRankedAncestor(parentGroup.value);
     });
 
     const groupInfo = computed(() => {
@@ -65,12 +69,24 @@ export default {
       return `${group?.name ?? "N/A"} (${classLevel})`;
     });
 
+    const youngestRankedAncestor = ref(null);
+    const fetchYoungestRankedAncestor = async (group) => {    
+        if (!group) return null;
+        try {
+            const response = await axios.get(`/api/groups/${group.id}/youngest-ranked-ancestor`);
+            youngestRankedAncestor.value = response.data;
+        } catch (error) {
+            console.error(`Error fetching youngest ranked ancestor for group ${group.id}`, error);
+            youngestRankedAncestor.value = null;
+        }
+    };
+
     const filteredClassifications = () => {
       const group = parentGroup.value;
       if (!group) return props.classifications;
 
-      const highest_valid_cid = group.isRanked ? group.classification_id : group.yra_classification_id;
-      const highest_valid_lid = group.isRanked ? group.level_id : group.yra_level_id;
+      const highest_valid_cid = group.isRanked ? group.classification_id : youngestRankedAncestor.value?.classification_id;
+      const highest_valid_lid = group.isRanked ? group.level_id : youngestRankedAncestor.value?.level_id;
  
       const nextClassRankId = store.getters.getNextRankedId(RankTypes.CLASSIFICATION, highest_valid_cid);
 
@@ -87,8 +103,8 @@ export default {
 
       classificationId = classificationId || groupForm.classification_id;
 
-      const highest_valid_cid = group.isRanked ? group.classification_id : group.yra_classification_id;
-      const highest_valid_lid = group.isRanked ? group.level_id : group.yra_level_id;
+      const highest_valid_cid = group.isRanked ? group.classification_id : youngestRankedAncestor.value?.classification_id;
+      const highest_valid_lid = group.isRanked ? group.level_id : youngestRankedAncestor.value?.level_id;
 
       if (highest_valid_cid == classificationId) {
         return props.levels.filter(l => {
@@ -122,13 +138,15 @@ export default {
         await axios.post(`/groups`, {
           ...groupForm, parent_group_id: group_id
         });
-        alert('Child group added!');
+        toast.success('Child group successfully added!');
         if (props.isModal) {
           emit('recordUpdate', {type: 'add', group_id: group_id, forceOpen: true});
           emitClose();
+        } else {
+          Object.assign(groupForm, defaultGroupForm);
         }
       } catch (e) {
-        alert('Error creating child group');
+        toast.success('An issue has occurred trying to create a child group');
       } finally {
         isSaving.value = false;
       }

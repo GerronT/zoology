@@ -23,6 +23,9 @@ import axios from 'axios';
 import 'vue3-select/dist/vue3-select.css';
 import AnimalForm from "../../Components/Animals/AnimalForm.vue";
 import GroupForm from "../../Components/Groups/GroupForm.vue";
+import { useToast } from 'vue-toastification';
+
+const toast = useToast();
 
 export default {
   props: {
@@ -89,10 +92,13 @@ export default {
           ...animalForm,
           ...groupForm
         });
-        alert('Animal added!');
-        location.reload();
+        toast.success('Animal successfully added!');
+        animalForm.name = '';
+        animalForm.alt_name = '';
+        animalForm.description = '';
+        groupForm.groupings = [];
       } catch (e) {
-        alert('Error creating animal');
+        toast.error('An issue has occurred trying to create animal');
       }
     };
 

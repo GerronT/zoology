@@ -14,6 +14,7 @@ Route::prefix('groups')->group(function () {
     Route::get('/search', [GroupController::class, 'search']);
     Route::get('/{group}/children', [GroupController::class, 'childrenRaw']);
     Route::get('/{group}/youngest-ranked-ancestor', [GroupController::class, 'youngestRankedAncestor']);
+    Route::get('/{group}/best-ranked-descendant', [GroupController::class, 'bestRankedDescendant']);
 });
 
 // For Vuex store

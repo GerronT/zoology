@@ -57,6 +57,9 @@
   import AddGroupForm from './AddGroupForm.vue';
   import EditGroupForm from './EditGroupForm.vue';
   import ConfirmationModal from '../../Components/Modals/ConfirmationModal.vue';
+  import { useToast } from 'vue-toastification';
+
+  const toast = useToast();
   
   export default {
     props: {
@@ -231,11 +234,19 @@
               exterminate: exterminate
             },
           });
-          alert('Group deleted!');
           recordUpdate({type: 'delete', group_id: parent_group_id});
           closeDeleteConfirmationModal();
-        } catch (e) {
-          alert('Error deleted group');
+          if (exterminate) {
+            toast.success('Group and its descendants has been successfully terminated!')
+          } else {
+            toast.success('Group successfully deleted!');
+          }
+        } catch (err) {
+          if (err.response && err.response.data) {
+            toast.error(err.response.data.message || 'Failed to delete/exterminate group.');
+          } else {
+            toast.error('An unexpected error occurred.');
+          }
         } finally {
           isDeleting.value = false;
         }
@@ -258,13 +269,12 @@
             recordUpdate({type: 'move', group_id: oldParentId});
             recordUpdate({type: 'move', group_id: newParentId, forceOpen: true});
           }
+          toast.success('Successfully moved group!');
         } catch (err) {
           if (err.response && err.response.data) {
-            console.error('Backend error:', err.response.data);
-            alert(err.response.data.message || 'Failed to update parent group.');
+            toast.error(err.response.data.message || 'Failed to update parent group.');
           } else {
-            console.error('Unknown error:', err);
-            alert('An unexpected error occurred.');
+            toast.error('An unexpected error occurred.');
           }
         }
       };
